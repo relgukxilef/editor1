@@ -3,6 +3,8 @@
 
 #include <boost/intrusive/list.hpp>
 
+#include <GL/glew.h>
+
 #include "renderable.h"
 
 namespace ge1 {
@@ -13,6 +15,8 @@ namespace ge1 {
         pass();
 
         list<renderable, constant_time_size<false>> renderables;
+        GLuint uniform_block; // TODO: maybe allow a list?
+        GLbitfield clear_mask;
     };
 
 }

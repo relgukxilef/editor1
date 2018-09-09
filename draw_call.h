@@ -3,17 +3,19 @@
 
 #include <GL/glew.h>
 
+#include <boost/intrusive/slist.hpp>
+
 #include "renderable.h"
 #include "vertex_array.h"
 
 namespace ge1 {
 
     struct draw_call : public renderable {
-        draw_call(vertex_array* data, GLuint program, GLenum mode);
+        draw_call(const vertex_array* data, GLuint program, GLenum mode);
 
         void render() override;
 
-        vertex_array* data;
+        const vertex_array* data;
         GLuint program;
         GLenum mode;
     };

@@ -8,6 +8,7 @@ namespace ge1 {
 
     void composition::render() {
         for (auto& pass : passes) {
+            glClear(pass.clear_mask);
             for (auto& renderable : pass.renderables) {
                 renderable.render();
             }

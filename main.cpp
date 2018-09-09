@@ -51,44 +51,44 @@ int main() {
     }
 
     typed::vertex_attribute<glm::vec3, 0> position{GL_FALSE};
-    typed::vertex_attribute<glm::vec3, 12> color{GL_FALSE};
 
-    vertex_attribute_pack_vector mesh_data{{&position, &color}};
+    vertex_attribute_pack_vector mesh_data({&position});
 
-    vertex_vector mesh{&mesh_data};
+    vertex_vector mesh({&mesh_data});
 
-    vertex_buffer buffer(mesh, 6);
+    vertex_buffer buffer(mesh, 4);
 
     position(buffer[0]) = {-1, -1, 0};
-    color(buffer[0]) = {0, 0, 1};
     position(buffer[1]) = {1, -1, 0};
-    color(buffer[1]) = {1, 0, 1};
     position(buffer[2]) = {-1, 1, 0};
-    color(buffer[2]) = {0, 1, 1};
-    position(buffer[3]) = {-1, 1, 0};
-    color(buffer[3]) = {0, 1, 1};
-    position(buffer[4]) = {1, -1, 0};
-    color(buffer[4]) = {1, 0, 1};
-    position(buffer[5]) = {1, 1, 0};
-    color(buffer[5]) = {1, 1, 1};
+    position(buffer[3]) = {1, 1, 0};
 
     mesh.push_back(buffer);
 
 
+
+
     program solid(
-        "shaders/solid.vs", "shaders/solid.fs",
-        {{"position", position}, {"color", color}}
+        "shaders/paint.vs",
+        "shaders/paint.tcs",
+        "shaders/paint.tes",
+        "shaders/paint.gs",
+        "shaders/paint.fs",
+        {{"position", position}}
     );
 
-    draw_call mesh_draw_call{&mesh, solid, GL_TRIANGLES};
+    draw_call mesh_draw_call{&mesh, solid, GL_PATCHES};
+
+    // TODO: should be called by draw_call
+    glPatchParameteri(GL_PATCH_VERTICES, 4);
 
 
     composition composition;
 
-    pass background_pass;
     pass foreground_pass;
 
-    composition.passes.push_back(background_pass);
+    foreground_pass.clear_mask = GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT;
+
     composition.passes.push_back(foreground_pass);
 
     foreground_pass.renderables.push_back(mesh_draw_call);
@@ -99,6 +99,10 @@ int main() {
     glViewport(0, 0, width, height);
 
     glfwSetWindowSizeCallback(window, &window_size_callback);
+
+    glClearColor(255, 255, 255, 0);
+
+    glEnable(GL_DEPTH_TEST);
 
 
     while (!glfwWindowShouldClose(window)) {

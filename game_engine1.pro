@@ -36,4 +36,9 @@ HEADERS += \
 
 DISTFILES += \
     shaders/solid.fs \
-    shaders/solid.vs
+    shaders/solid.vs \
+    shaders/paint.fs \
+    shaders/paint.vs \
+    shaders/paint.tcs \
+    shaders/paint.tes \
+    shaders/paint.gs

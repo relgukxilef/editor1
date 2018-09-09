@@ -8,8 +8,6 @@
 
 #include <GL/glew.h>
 
-#include <fast/collections/span.h>
-
 namespace ge1 {
     struct vertex_attribute;
     struct vertex_attribute_pack;
@@ -116,9 +114,9 @@ namespace ge1 {
             std::initializer_list<vertex_attribute_pack*> attribute_packs
         );
 
-        GLuint get_vao();
-        GLint get_first();
-        GLsizei get_count();
+        GLuint get_vao() const;
+        GLint get_first() const;
+        GLsizei get_count() const;
 
     protected:
         GLuint vao;
@@ -211,15 +209,15 @@ namespace ge1 {
         return attribute_packs;
     }
 
-    inline GLuint vertex_array::get_vao() {
+    inline GLuint vertex_array::get_vao() const {
         return vao;
     }
 
-    inline GLint vertex_array::get_first() {
+    inline GLint vertex_array::get_first() const {
         return first;
     }
 
-    inline GLsizei vertex_array::get_count() {
+    inline GLsizei vertex_array::get_count() const {
         return count;
     }
 

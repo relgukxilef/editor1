@@ -20,18 +20,34 @@ objects
     vertex_array_indirect
         same as vertex_array_indirect but the instance count values are only allowed to be 0 or 1
         
+        
+    programs store binding points for each interface block
+    the context stores ranges into VBOs for each binding point
+    for per-pass information we have a space in a buffer for each pass. at the start of the pass we bind the corresponding range to the binding point. every pass uses the same binding point for per-pass information
+        
+    uniform
+        stores the offset of the uniform inside its block
+        use glGetActiveUniformsiv(program​, 1, &uniform_index, GL_UNIFORM_OFFSET, &offset) to retreive the offset of the uniform at index uniform_index
+        
+    uniform_block
+        stores a list of uniforms
+        
+    uniform_block_binding
+        
+        
+        
 managers
     These wrap objects to allow higher lever operations on it.
     
-    dynamic_vertex_array
+    vertex_vector
         allows insertion and removal of elements into a vertex_array
         
-    dynamic_vertex_array_indirect
+    vertex_vector_indirect
         allows insertion and removal of meshes, vertices into meshes and instances of meshes
         each instance of a mesh has its own entry in the command list
         the instance counter may only be 0 or 1 and operates as visibility flag
         
-    dynamic_vertex_array_indirect_instanced
+    vertex_vector_indirect_instanced
         allows insertion and removal of meshes, vertices into meshes and instances of meshes
         
         As long as attributes are never moved to different VBOs the VAO doesn't need to be updated. Therefore it's not necessary to have this class keep a VAO updated.

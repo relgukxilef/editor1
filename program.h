@@ -14,7 +14,8 @@ namespace ge1 {
         const char* tesselation_evaluation_shader,
         const char* geometry_shader,
         const char* fragment_shader,
-        std::initializer_list<std::pair<const char*, GLuint>> arguments
+        std::initializer_list<std::pair<const char*, GLuint>> attributes,
+        std::initializer_list<std::pair<const char*, GLuint>> uniforms = {}
     );
 
     struct program {
@@ -25,11 +26,13 @@ namespace ge1 {
             const char* tesselation_evaluation_shader,
             const char* geometry_shader,
             const char* fragment_shader,
-            std::initializer_list<std::pair<const char*, GLuint>> arguments
+            std::initializer_list<std::pair<const char*, GLuint>> attributes,
+            std::initializer_list<std::pair<const char*, GLuint>> uniforms = {}
         );
         program(const char* vertex_shader,
             const char* fragment_shader,
-            std::initializer_list<std::pair<const char*, GLuint>> arguments
+            std::initializer_list<std::pair<const char*, GLuint>> attributes,
+            std::initializer_list<std::pair<const char*, GLuint>> uniforms = {}
         );
 
         ~program();
@@ -49,7 +52,8 @@ namespace ge1 {
         const char* tesselation_evaluation_shader,
         const char* geometry_shader,
         const char* fragment_shader,
-        std::initializer_list<std::pair<const char*, GLuint>> arguments
+        std::initializer_list<std::pair<const char*, GLuint>> attributes,
+        std::initializer_list<std::pair<const char*, GLuint>> uniforms
     ) :
         name(compile_program(
             vertex_shader,
@@ -57,13 +61,15 @@ namespace ge1 {
             tesselation_evaluation_shader,
             geometry_shader,
             fragment_shader,
-            arguments
+            attributes,
+            uniforms
         ))
     {}
 
     inline program::program(
         const char* vertex_shader, const char* fragment_shader,
-        std::initializer_list<std::pair<const char*, GLuint>> arguments
+        std::initializer_list<std::pair<const char*, GLuint>> attributes,
+        std::initializer_list<std::pair<const char*, GLuint>> uniforms
     ) :
         program(
             vertex_shader,
@@ -71,7 +77,8 @@ namespace ge1 {
             nullptr,
             nullptr,
             fragment_shader,
-            arguments
+            attributes,
+            uniforms
         )
     {}
 
