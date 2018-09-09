@@ -1,0 +1,58 @@
+#version 410 core
+
+layout(isolines, fractional_odd_spacing) in;
+
+in vec3 tcs_position[];
+
+out vec4 left;
+out vec4 right;
+out vec2 parameter;
+
+float rand(float x) {
+    uint seed = floatBitsToUint(x);
+    seed = seed ^ (seed >> 3) ^ (seed >> 7) ^ (seed >> 11);
+    return float(seed % 289) / 289.0;
+}
+
+float perlin(float x) {
+    float a = floor(x);
+    float b = a + 1;
+    float r = x - a;
+
+    return (
+        (rand(a) * 2 - 1) * (r*r*r - 2*r*r + r) +
+        (rand(b) * 2 - 1) * (r*r*r - r*r)
+    );
+}
+
+void main(void) {
+    vec4 center = vec4(
+        tcs_position[0] * gl_TessCoord.x * gl_TessCoord.y +
+        tcs_position[1] * (1 - gl_TessCoord.x) * gl_TessCoord.y +
+        tcs_position[2] * gl_TessCoord.x * (1 - gl_TessCoord.y) +
+        tcs_position[3] * (1 - gl_TessCoord.x) * (1 - gl_TessCoord.y),
+        1
+    );
+
+    center.y +=
+        sin(gl_TessCoord.x * 6) * 0.25;
+
+    //center.xyz += vec3(
+    //	rand(gl_TessCoord.y), rand(gl_TessCoord.y + 1), rand(gl_TessCoord.y + 2)
+    //) * 0.05;
+
+    center.z += rand(gl_TessCoord.y);
+
+    center.xy += vec2(
+        perlin((gl_TessCoord.x + gl_TessCoord.y * 10) * 5),
+        perlin((gl_TessCoord.x + gl_TessCoord.y * 10 + 1) * 5)
+    ) * 0.2;
+
+    vec4 offset = vec4(0, 0.1, 0, 0);
+
+    left = center + offset;
+    right = center - offset;
+
+    parameter = gl_TessCoord.xy;
+
+}

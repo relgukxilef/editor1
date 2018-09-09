@@ -5,7 +5,11 @@
 !*.c
 !*.md
 !*.glsl
-!*.glsl
+!*.vs
+!*.tcs
+!*.tes
+!*.gs
+!*.fs
 !*.pro
 
 !*.txt

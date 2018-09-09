@@ -1,0 +1,13 @@
+#version 410 core
+
+layout(vertices = 4) out;
+
+in vec3 vs_position[];
+
+out vec3 tcs_position[];
+
+void main(void) {
+	gl_TessLevelOuter[gl_InvocationID] = 64;
+
+	tcs_position[gl_InvocationID] = vs_position[gl_InvocationID];
+}
