@@ -6,16 +6,18 @@
 namespace ge1 {
 
     struct drag_vertex : public operation {
-        drag_vertex(context& context, double x, double y);
+        drag_vertex();
 
-        status mouse_move_event(double x, double y) override;
+        status trigger(context& c, double x, double y) override;
+        status mouse_move_event(context &c, double x, double y) override;
         status mouse_button_event(
-            int button, int action, int modifiers
+            context &c, int button, int action, int modifiers
         ) override;
 
         unsigned int selected_vertex;
-        context& c;
         glm::mat4 inverse_matrix;
         float ndc_z;
     };
+
+    inline drag_vertex::drag_vertex() {}
 }

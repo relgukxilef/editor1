@@ -20,18 +20,35 @@ using namespace glm;
 
 using namespace ge1;
 
+struct unique_glfw {
+    unique_glfw() {
+        if (!glfwInit()) {
+            throw runtime_error("Couldn't initialize GLFW!");
+        }
+    }
+
+    ~unique_glfw() {
+        glfwTerminate();
+    }
+};
+
+static unique_glfw glfw;
+
 static GLuint view_properties_buffer;
 
-static std::unique_ptr<operation> current_operation;
+static operation* current_operation = nullptr;
 static context current_context;
+
+static drag_vertex drag_vertex_operation;
 
 void cursor_position_callback(GLFWwindow*, double x, double y) {
     if (current_operation) {
         if (
-            current_operation->mouse_move_event(x, y) ==
-            operation::status::finished
+            current_operation->mouse_move_event(
+                current_context, x, y
+            ) == operation::status::finished
         ) {
-            current_operation.reset();
+            current_operation = nullptr;
         }
     }
 }
@@ -41,21 +58,24 @@ void mouse_button_callback(
 ) {
     if (current_operation) {
         if (
-            current_operation->mouse_button_event(button, action, modifiers) ==
-            operation::status::finished
+            current_operation->mouse_button_event(
+                current_context, button, action, modifiers
+            ) == operation::status::finished
         ) {
-            current_operation.reset();
+            current_operation = nullptr;
         }
     } else {
         double x, y;
         glfwGetCursorPos(window, &x, &y);
-        current_operation.reset(new drag_vertex(current_context, x, y));
+        current_operation = &drag_vertex_operation;
+
+        current_operation->trigger(current_context, x, y);
     }
 }
 
 void window_size_callback(GLFWwindow*, int width, int height) {
-    current_context.width = width;
-    current_context.height = height;
+    current_context.width = static_cast<unsigned int>(width);
+    current_context.height = static_cast<unsigned int>(height);
     glViewport(0, 0, width, height);
 
     current_context.current_view->projection_matrix = perspective(
@@ -72,21 +92,7 @@ void window_size_callback(GLFWwindow*, int width, int height) {
     );
 }
 
-struct unique_glfw {
-    unique_glfw() {
-        if (!glfwInit()) {
-            throw runtime_error("Couldn't initialize GLFW!");
-        }
-    }
-
-    ~unique_glfw() {
-        glfwTerminate();
-    }
-};
-
 int main() {
-    unique_glfw glfw;
-
     GLFWwindow* window;
 
     glfwWindowHint(GLFW_SAMPLES, 16);

@@ -6,9 +6,7 @@ using namespace glm;
 
 namespace ge1 {
 
-    drag_vertex::drag_vertex(
-        context& c, double x, double y
-    ) : c(c) {
+    operation::status drag_vertex::trigger(context& c, double x, double y) {
         auto matrix =
             c.current_view->projection_matrix *
             c.current_view->view_matrix * c.current_object->model_matrix;
@@ -25,19 +23,17 @@ namespace ge1 {
             if (length(vec2(ndc.x, ndc.y) - mouse_ndc) < 0.1f) {
                 selected_vertex = i;
                 ndc_z = ndc.z;
-                break;
+                return status::running;
             }
             i++;
         }
+
+        return status::finished;
     }
 
-    operation::status drag_vertex::mouse_move_event(double x, double y) {
-        if (selected_vertex == static_cast<unsigned int>(-1)) {
-            // TODO: would be nice if the constructor could already
-            // set the status to finished
-            return status::finished;
-        }
-
+    operation::status drag_vertex::mouse_move_event(
+        context& c, double x, double y
+    ) {
         vec2 mouse_ndc = {x / c.width * 2 - 1, 1 - y / c.height * 2};
 
         vec4 t = inverse_matrix * vec4(mouse_ndc, ndc_z, 1);
@@ -58,7 +54,7 @@ namespace ge1 {
     }
 
     operation::status drag_vertex::mouse_button_event(
-        int button, int action, int modifiers
+        context& c, int button, int action, int modifiers
     ) {
         if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE) {
             return status::finished;

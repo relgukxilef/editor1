@@ -1,5 +1,7 @@
 #pragma once
 
+#include "editor/data/context.h"
+
 namespace ge1 {
 
     struct operation {
@@ -10,10 +12,13 @@ namespace ge1 {
         operation() = default;
         virtual ~operation() = default;
 
-        virtual status mouse_move_event(double x, double y);
+        virtual status trigger(context &c, double x, double y) = 0;
+        virtual status mouse_move_event(context &c, double x, double y);
         virtual status mouse_button_event(
-            int button, int action, int modifiers
+            context &c, int button, int action, int modifiers
         );
-        virtual status key_event(int key, int scancode, int modifiers);
+        virtual status key_event(
+            context &c, int key, int scancode, int modifiers
+        );
     };
 }
