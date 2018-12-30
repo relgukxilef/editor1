@@ -21,7 +21,8 @@ SOURCES += \
     editor/data/mesh.cpp \
     editor/data/view.cpp \
     editor/data/context.cpp \
-    editor/data/object.cpp
+    editor/data/object.cpp \
+    editor/operations/select_vertex.cpp
 
 HEADERS += \
     pass.h \
@@ -42,7 +43,8 @@ HEADERS += \
     editor/data/mesh.h \
     editor/data/view.h \
     editor/data/context.h \
-    editor/data/object.h
+    editor/data/object.h \
+    editor/operations/select_vertex.h
 
 DISTFILES += \
     shaders/solid.fs \

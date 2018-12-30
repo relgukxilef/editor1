@@ -14,21 +14,18 @@ namespace ge1 {
 
         vec2 mouse_ndc = {x / c.width * 2 - 1, 1 - y / c.height * 2};
 
-        selected_vertex = static_cast<unsigned int>(-1);
-        unsigned int i = 0;
-        for (auto& vertex : c.current_object->m->vertex_positions) {
-            vec4 ndc = matrix * vec4(vertex, 1);
-            ndc /= ndc.w;
-            // TODO: respect aspect ratio
-            if (length(vec2(ndc.x, ndc.y) - mouse_ndc) < 0.1f) {
-                selected_vertex = i;
-                ndc_z = ndc.z;
-                return status::running;
-            }
-            i++;
+        if (
+            c.current_object->m->pick_vertex(matrix, mouse_ndc, selected_vertex)
+        ) {
+            // TODO: calculation is redundant in pick_vertex
+            vec4 vertex_ndc = matrix * vec4(
+                c.current_object->m->vertex_positions[selected_vertex], 1
+            );
+            ndc_z = vertex_ndc.z / vertex_ndc.w;
+            return status::running;
+        } else {
+            return status::finished;
         }
-
-        return status::finished;
     }
 
     operation::status drag_vertex::mouse_move_event(

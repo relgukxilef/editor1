@@ -23,26 +23,44 @@ namespace ge1 {
         v /= v.w;
 
         object.m->vertex_positions.push_back(vec3(v));
+        object.m->vertex_selection.push_back(false);
 
         // TODO: update call for all objects using this mesh
         object.call.count++;
 
-        glBindBuffer(
-            GL_COPY_WRITE_BUFFER,
-            object.m->vertex_position_buffer.get_name()
-        );
+        // TODO: move resizing into mesh
 
         if (
             static_cast<unsigned int>(object.call.count) >
             object.m->vertex_position_capacity
         ) {
             object.m->vertex_position_capacity *= 2;
+
+            glBindBuffer(
+                GL_COPY_WRITE_BUFFER,
+                object.m->vertex_position_buffer.get_name()
+            );
             glBufferData(
                 GL_COPY_WRITE_BUFFER,
                 object.m->vertex_position_capacity * 3 * sizeof(float),
                 object.m->vertex_positions.data(), GL_DYNAMIC_DRAW
             );
+
+            glBindBuffer(
+                GL_COPY_WRITE_BUFFER,
+                object.m->vertex_selection_buffer.get_name()
+            );
+            glBufferData(
+                GL_COPY_WRITE_BUFFER,
+                object.m->vertex_position_capacity,
+                object.m->vertex_selection.data(), GL_DYNAMIC_DRAW
+            );
+
         } else {
+            glBindBuffer(
+                GL_COPY_WRITE_BUFFER,
+                object.m->vertex_position_buffer.get_name()
+            );
             glBufferSubData(
                 GL_COPY_WRITE_BUFFER,
                 static_cast<unsigned int>(object.call.count - 1) *

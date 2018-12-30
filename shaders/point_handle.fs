@@ -1,5 +1,7 @@
 #version 410 core
 
+in vec3 vertex_color;
+
 out vec4 color;
 
 float edge(float edge, float width, float x) {
@@ -15,6 +17,6 @@ void main(void) {
     float width = fwidth(radius);
 
     color = vec4(
-        vec3(1 - edge(3.0/4.0, width, radius)), 1
+        vertex_color * (1 - edge(3.0/4.0, width, radius)), 1
     );
 }

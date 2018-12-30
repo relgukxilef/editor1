@@ -15,6 +15,7 @@
 #include "editor/operation.h"
 #include "editor/operations/drag_vertex.h"
 #include "editor/operations/add_vertex.h"
+#include "editor/operations/select_vertex.h"
 
 using namespace std;
 using namespace glm;
@@ -42,6 +43,7 @@ static context current_context;
 
 static drag_vertex drag_vertex_operation;
 static add_vertex add_vertex_operation;
+static select_vertex select_vertex_operation;
 
 void cursor_position_callback(GLFWwindow*, double x, double y) {
     if (current_operation) {
@@ -73,6 +75,8 @@ void mouse_button_callback(
 
         if (modifiers & GLFW_MOD_SHIFT) {
             current_operation = &add_vertex_operation;
+        } else if (modifiers & GLFW_MOD_CONTROL) {
+            current_operation = &select_vertex_operation;
         } else {
             current_operation = &drag_vertex_operation;
         }
@@ -139,10 +143,10 @@ int main() {
         GL_COPY_WRITE_BUFFER, 16 * sizeof(float), nullptr, GL_DYNAMIC_DRAW
     );
 
-    GLuint shape_buffer, color_buffer;
+    GLuint shape_buffer, color_buffer, selection_buffer;
 
     enum attributes : GLuint {
-        position, color
+        position, color, selection
     };
 
     mesh my_mesh;
@@ -154,8 +158,14 @@ int main() {
         {{
             {color, 3, GL_FLOAT, GL_FALSE, 0},
         }, 3 * sizeof(float), GL_STATIC_DRAW, &color_buffer},
+        {{
+            {selection, 1, GL_UNSIGNED_BYTE, GL_FALSE, 0},
+        }, 1, GL_STATIC_DRAW, &selection_buffer},
     });
     my_mesh.vertex_position_buffer = shape_buffer;
+    my_mesh.vertex_selection_buffer = selection_buffer;
+
+    my_mesh.vertex_selection.resize(4);
 
     my_mesh.vertex_positions = {
         {-1, -1, 0},
@@ -201,7 +211,7 @@ int main() {
         "shaders/point_handle.vs", nullptr, nullptr, nullptr,
         "shaders/point_handle.fs",
         {fragment_utils.get_name()},
-        {{"position", position}},
+        {{"position", position}, {"selection", selection}},
         {
             {"model", &point_handle_model_matrix}
         }, {
