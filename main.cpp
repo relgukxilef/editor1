@@ -109,7 +109,7 @@ void window_size_callback(GLFWwindow*, int width, int height) {
 int main() {
     GLFWwindow* window;
 
-    glfwWindowHint(GLFW_SAMPLES, 16);
+    glfwWindowHint(GLFW_SAMPLES, 8);
     glfwSwapInterval(1);
 
     GLFWmonitor *monitor = glfwGetPrimaryMonitor();
