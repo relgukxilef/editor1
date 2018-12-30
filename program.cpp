@@ -58,7 +58,8 @@ namespace ge1 {
         const char* fragment_shader,
         span<GLuint> libraries,
         span<program_attribute_parameter> attributes,
-        span<program_uniform_parameter> uniforms
+        span<program_uniform_parameter> uniforms,
+        span<program_uniform_block_parameter> uniform_blocks
     ) {
         unique_shader shaders[5] = {
             vertex_shader == nullptr ?
@@ -95,10 +96,6 @@ namespace ge1 {
             glBindAttribLocation(name, attribute.location, attribute.name);
         }
 
-        for (auto& uniform : uniforms) {
-            *uniform.location = glGetUniformLocation(name, uniform.name);
-        }
-
         glLinkProgram(name);
 
         GLint success;
@@ -114,6 +111,15 @@ namespace ge1 {
             if (s.get_name() != 0) {
                 glDetachShader(name, s.get_name());
             }
+        }
+
+        for (auto& uniform : uniforms) {
+            *uniform.location = glGetUniformLocation(name, uniform.name);
+        }
+
+        for (auto& uniform_block : uniform_blocks) {
+            GLuint index = glGetUniformBlockIndex(name, uniform_block.name);
+            glUniformBlockBinding(name, index, uniform_block.binding);
         }
 
         return name;

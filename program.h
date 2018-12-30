@@ -34,6 +34,11 @@ namespace ge1 {
         GLint* location;
     };
 
+    struct program_uniform_block_parameter {
+        const char* name;
+        GLuint binding;
+    };
+
     GLuint compile_program(
         const char* vertex_shader,
         const char* tesselation_control_shader,
@@ -42,6 +47,7 @@ namespace ge1 {
         const char* fragment_shader,
         span<GLuint> libraries,
         span<program_attribute_parameter> attributes,
-        span<program_uniform_parameter> uniforms
+        span<program_uniform_parameter> uniforms = {},
+        span<program_uniform_block_parameter> uniform_blocks = {}
     );
 }

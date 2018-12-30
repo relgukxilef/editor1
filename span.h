@@ -11,6 +11,7 @@ namespace ge1 {
 
         const T* begin() const;
         const T* end() const;
+        bool empty() const;
 
         const T* begin_pointer, * end_pointer;
     };
@@ -33,6 +34,11 @@ namespace ge1 {
     template<class T>
     const T* span<T>::end() const {
         return end_pointer;
+    }
+
+    template<class T>
+    bool span<T>::empty() const {
+        return begin() == end();
     }
 
 }

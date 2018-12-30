@@ -14,7 +14,13 @@ SOURCES += \
     composition.cpp \
     program.cpp \
     draw_call.cpp \
-    vertex_array.cpp
+    vertex_array.cpp \
+    editor/operation.cpp \
+    editor/operations/drag_vertex.cpp \
+    editor/data/mesh.cpp \
+    editor/data/view.cpp \
+    editor/data/context.cpp \
+    editor/data/object.cpp
 
 HEADERS += \
     pass.h \
@@ -28,9 +34,17 @@ HEADERS += \
 	typed/interfaces.h \
     typed/primitive_types.h \
     typed/glm_types.h \
-    span.h
+    span.h \
+    editor/operation.h \
+    editor/operations/drag_vertex.h \
+    editor/data/mesh.h \
+    editor/data/view.h \
+    editor/data/context.h \
+    editor/data/object.h
 
 DISTFILES += \
     shaders/solid.fs \
     shaders/solid.vs \
-    shaders/utils.fs
+    shaders/utils.fs \
+    shaders/point_handle.fs \
+    shaders/point_handle.vs
