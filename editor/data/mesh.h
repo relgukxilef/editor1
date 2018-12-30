@@ -16,5 +16,7 @@ namespace ge1 {
         // don't share buffers between meshes for now
         unique_vertex_array vertex_array;
         unique_buffer vertex_position_buffer;
+
+        unsigned int vertex_position_capacity = 0;
     };
 }

@@ -14,6 +14,7 @@
 #include "program.h"
 #include "editor/operation.h"
 #include "editor/operations/drag_vertex.h"
+#include "editor/operations/add_vertex.h"
 
 using namespace std;
 using namespace glm;
@@ -40,6 +41,7 @@ static operation* current_operation = nullptr;
 static context current_context;
 
 static drag_vertex drag_vertex_operation;
+static add_vertex add_vertex_operation;
 
 void cursor_position_callback(GLFWwindow*, double x, double y) {
     if (current_operation) {
@@ -64,12 +66,24 @@ void mouse_button_callback(
         ) {
             current_operation = nullptr;
         }
-    } else {
+
+    } else if (action == GLFW_PRESS) {
         double x, y;
         glfwGetCursorPos(window, &x, &y);
-        current_operation = &drag_vertex_operation;
 
-        current_operation->trigger(current_context, x, y);
+        if (modifiers & GLFW_MOD_SHIFT) {
+            current_operation = &add_vertex_operation;
+        } else {
+            current_operation = &drag_vertex_operation;
+        }
+
+        if (
+            current_operation != nullptr &&
+            current_operation->trigger(current_context, x, y) ==
+            operation::status::finished
+        ) {
+            current_operation = nullptr;
+        }
     }
 }
 
@@ -132,6 +146,7 @@ int main() {
     };
 
     mesh my_mesh;
+    my_mesh.vertex_position_capacity = 4;
     my_mesh.vertex_array = create_vertex_array(4, {
         {{
             {position, 3, GL_FLOAT, GL_FALSE, 0},
@@ -211,19 +226,15 @@ int main() {
     );
 
     current_context.current_view = new view();
-    current_context.current_object = new object();
-    current_context.current_object->mesh = &my_mesh;
+    current_context.current_object = new object(
+        &my_mesh, point_handle_program.get_name()
+    );
     current_context.current_view->view_matrix =
         lookAt(vec3(2, 0, 2), {0, 0, 0}, {0, 0, 1});
 
     draw_call mesh_draw_call{
         my_mesh.vertex_array.get_name(), 0, 4,
         solid_program.get_name(), GL_TRIANGLE_STRIP
-    };
-
-    draw_call point_handle_draw_call{
-        my_mesh.vertex_array.get_name(), 0, 4,
-        point_handle_program.get_name(), GL_POINTS
     };
 
 
@@ -236,7 +247,9 @@ int main() {
     composition.passes.push_back(foreground_pass);
 
     foreground_pass.renderables.push_back(mesh_draw_call);
-    foreground_pass.renderables.push_back(point_handle_draw_call);
+    foreground_pass.renderables.push_back(
+        current_context.current_object->call
+    );
 
 
     int width, height;

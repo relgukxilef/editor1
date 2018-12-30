@@ -17,6 +17,7 @@ SOURCES += \
     vertex_array.cpp \
     editor/operation.cpp \
     editor/operations/drag_vertex.cpp \
+    editor/operations/add_vertex.cpp \
     editor/data/mesh.cpp \
     editor/data/view.cpp \
     editor/data/context.cpp \
@@ -37,6 +38,7 @@ HEADERS += \
     span.h \
     editor/operation.h \
     editor/operations/drag_vertex.h \
+    editor/operations/add_vertex.h \
     editor/data/mesh.h \
     editor/data/view.h \
     editor/data/context.h \
