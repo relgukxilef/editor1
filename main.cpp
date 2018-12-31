@@ -143,7 +143,7 @@ int main() {
         GL_COPY_WRITE_BUFFER, 16 * sizeof(float), nullptr, GL_DYNAMIC_DRAW
     );
 
-    GLuint shape_buffer, color_buffer, selection_buffer;
+    GLuint position_buffer, face_position_buffer, selection_buffer;
 
     enum attributes : GLuint {
         position, color, selection
@@ -152,18 +152,26 @@ int main() {
     mesh my_mesh;
     my_mesh.vertex_capacity = 4;
     my_mesh.vertex_count = 4;
+    my_mesh.face_capacity = 2;
+    my_mesh.face_count = 2;
+
     my_mesh.vertex_array = create_vertex_array(4, {
         {{
             {position, 3, GL_FLOAT, GL_FALSE, 0},
-        }, 3 * sizeof(float), GL_STATIC_DRAW, &shape_buffer},
-        {{
-            {color, 3, GL_FLOAT, GL_FALSE, 0},
-        }, 3 * sizeof(float), GL_STATIC_DRAW, &color_buffer},
+        }, 3 * sizeof(float), GL_STATIC_DRAW, &position_buffer},
         {{
             {selection, 1, GL_UNSIGNED_BYTE, GL_FALSE, 0},
         }, 1, GL_STATIC_DRAW, &selection_buffer},
     });
-    my_mesh.vertex_position_buffer = shape_buffer;
+
+    my_mesh.face_vertex_array = create_vertex_array(6, {
+        {{
+            {position, 3, GL_FLOAT, GL_FALSE, 0},
+        }, 3 * sizeof(float), GL_STATIC_DRAW, &face_position_buffer}
+    });
+
+    my_mesh.vertex_position_buffer = position_buffer;
+    my_mesh.face_vertex_position_buffer = face_position_buffer;
     my_mesh.vertex_selection_buffer = selection_buffer;
 
     my_mesh.vertex_selection.resize(4);
@@ -172,23 +180,25 @@ int main() {
         {-1, -1, 0},
         {-1, 1, 0},
         {1, -1, 0},
-        {1, 1, 0}
+        {1, 1, 0},
     };
-    float colors[] = {
-        1, 0, 1,
-        0, 1, 1,
-        1, 1, 0,
-        1, 1, 1,
+    my_mesh.face_vertex_positions = {
+        {-1, -1, 0}, {-1, 1, 0}, {1, -1, 0},
+        {1, -1, 0}, {-1, 1, 0}, {1, 1, 0},
+    };
+    my_mesh.vertex_face_vertices = {
+        {0, 0}, {1, 1}, {2, 2}, {2, 3}, {1, 4}, {3, 5},
     };
 
-    glBindBuffer(GL_COPY_WRITE_BUFFER, shape_buffer);
+    glBindBuffer(GL_COPY_WRITE_BUFFER, position_buffer);
     glBufferSubData(
         GL_COPY_WRITE_BUFFER, 0, 4 * 3 * sizeof(float),
         my_mesh.vertex_positions.data()
     );
-    glBindBuffer(GL_COPY_WRITE_BUFFER, color_buffer);
+    glBindBuffer(GL_COPY_WRITE_BUFFER, face_position_buffer);
     glBufferSubData(
-        GL_COPY_WRITE_BUFFER, 0, 4 * 3 * sizeof(float), colors
+        GL_COPY_WRITE_BUFFER, 0, 6 * 3 * sizeof(float),
+        my_mesh.face_vertex_positions.data()
     );
 
     unique_shader fragment_utils = compile_shader(
@@ -244,8 +254,8 @@ int main() {
         lookAt(vec3(2, 0, 2), {0, 0, 0}, {0, 0, 1});
 
     draw_call mesh_draw_call{
-        my_mesh.vertex_array.get_name(), 0, 4,
-        solid_program.get_name(), GL_TRIANGLE_STRIP
+        my_mesh.face_vertex_array.get_name(), 0, 6,
+        solid_program.get_name(), GL_TRIANGLES
     };
 
 

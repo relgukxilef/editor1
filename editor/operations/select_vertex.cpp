@@ -20,6 +20,12 @@ namespace ge1 {
             bool selection = !m->vertex_selection[selected_vertex];
             m->vertex_selection[selected_vertex] = selection;
 
+            if (selection) {
+                m->selected_vertices.insert(selected_vertex);
+            } else {
+                m->selected_vertices.erase(selected_vertex);
+            }
+
             glBindBuffer(
                 GL_COPY_WRITE_BUFFER, m->vertex_selection_buffer.get_name()
             );

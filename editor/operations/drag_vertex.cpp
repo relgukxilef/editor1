@@ -31,17 +31,19 @@ namespace ge1 {
     operation::status drag_vertex::mouse_move_event(
         context& c, double x, double y
     ) {
+        auto& m = c.current_object->m;
+
         vec2 mouse_ndc = {x / c.width * 2 - 1, 1 - y / c.height * 2};
 
         vec4 t = inverse_matrix * vec4(mouse_ndc, ndc_z, 1);
         t /= t.w;
 
-        c.current_object->m->vertex_positions[selected_vertex] =
+        m->vertex_positions[selected_vertex] =
             vec3(t);
 
         glBindBuffer(
             GL_COPY_WRITE_BUFFER,
-            c.current_object->m->vertex_position_buffer.get_name()
+            m->vertex_position_buffer.get_name()
         );
         glBufferSubData(
             GL_COPY_WRITE_BUFFER,
@@ -49,6 +51,26 @@ namespace ge1 {
             3 * sizeof(float),
             &t
         );
+
+        glBindBuffer(
+            GL_COPY_WRITE_BUFFER,
+            m->face_vertex_position_buffer.get_name()
+        );
+
+        auto face_vertices =
+            m->vertex_face_vertices.equal_range(selected_vertex);
+        for (
+            auto face_vertex = face_vertices.first;
+            face_vertex != face_vertices.second;
+            face_vertex++
+        ) {
+            glBufferSubData(
+                GL_COPY_WRITE_BUFFER,
+                face_vertex->second * 3 * sizeof(float),
+                3 * sizeof(float),
+                &t
+            );
+        }
 
         return status::running;
     }
