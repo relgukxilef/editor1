@@ -19,7 +19,7 @@ namespace ge1 {
         void add_vertex(glm::vec3 position);
 
         std::vector<glm::vec3> vertex_positions;
-        std::vector<unsigned short> vertex_selection;
+        std::vector<unsigned char> vertex_selection;
 
         std::vector<glm::vec3> face_vertex_positions;
 

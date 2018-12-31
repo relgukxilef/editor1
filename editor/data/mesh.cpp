@@ -67,6 +67,16 @@ namespace ge1 {
                 (vertex_count - 1) * 3 * sizeof(float),
                 3 * sizeof(float), &position
             );
+
+            bool selected = false;
+            glBindBuffer(
+                GL_COPY_WRITE_BUFFER,
+                vertex_selection_buffer.get_name()
+            );
+            glBufferSubData(
+                GL_COPY_WRITE_BUFFER,
+                vertex_count - 1, 1, &selected
+            );
         }
     }
 }
