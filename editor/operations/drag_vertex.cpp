@@ -64,6 +64,9 @@ namespace ge1 {
             face_vertex != face_vertices.second;
             face_vertex++
         ) {
+            m->face_vertex_positions[face_vertex->second] =
+                vec3(t);
+
             glBufferSubData(
                 GL_COPY_WRITE_BUFFER,
                 face_vertex->second * 3 * sizeof(float),

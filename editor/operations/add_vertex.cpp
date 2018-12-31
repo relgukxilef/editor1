@@ -25,7 +25,7 @@ namespace ge1 {
         object.m->add_vertex(vec3(v));
 
         // TODO: update call for all objects using this mesh
-        object.call.count++;
+        object.vertex_call.count++;
 
         return status::finished;
     }

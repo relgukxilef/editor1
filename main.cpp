@@ -16,6 +16,7 @@
 #include "editor/operations/drag_vertex.h"
 #include "editor/operations/add_vertex.h"
 #include "editor/operations/select_vertex.h"
+#include "editor/operations/add_face.h"
 
 using namespace std;
 using namespace glm;
@@ -44,6 +45,7 @@ static context current_context;
 static drag_vertex drag_vertex_operation;
 static add_vertex add_vertex_operation;
 static select_vertex select_vertex_operation;
+static add_face add_face_operation;
 
 void cursor_position_callback(GLFWwindow*, double x, double y) {
     if (current_operation) {
@@ -79,6 +81,32 @@ void mouse_button_callback(
             current_operation = &select_vertex_operation;
         } else {
             current_operation = &drag_vertex_operation;
+        }
+
+        if (
+            current_operation != nullptr &&
+            current_operation->trigger(current_context, x, y) ==
+            operation::status::finished
+        ) {
+            current_operation = nullptr;
+        }
+    }
+}
+
+void key_callback(
+    GLFWwindow* window, int key, int scancode, int action, int mods
+) {
+    if (current_operation) {
+        // TODO
+
+    } else {
+        double x, y;
+        glfwGetCursorPos(window, &x, &y);
+
+        if (action == GLFW_PRESS) {
+            if (key == GLFW_KEY_F) {
+                current_operation = &add_face_operation;
+            }
         }
 
         if (
@@ -248,15 +276,10 @@ int main() {
 
     current_context.current_view = new view();
     current_context.current_object = new object(
-        &my_mesh, point_handle_program.get_name()
+        &my_mesh, solid_program.get_name(), point_handle_program.get_name()
     );
     current_context.current_view->view_matrix =
         lookAt(vec3(2, 0, 2), {0, 0, 0}, {0, 0, 1});
-
-    draw_call mesh_draw_call{
-        my_mesh.face_vertex_array.get_name(), 0, 6,
-        solid_program.get_name(), GL_TRIANGLES
-    };
 
 
     composition composition;
@@ -267,9 +290,11 @@ int main() {
     composition.passes.push_back(background_pass);
     composition.passes.push_back(foreground_pass);
 
-    foreground_pass.renderables.push_back(mesh_draw_call);
     foreground_pass.renderables.push_back(
-        current_context.current_object->call
+        current_context.current_object->face_call
+    );
+    foreground_pass.renderables.push_back(
+        current_context.current_object->vertex_call
     );
 
 
@@ -278,6 +303,7 @@ int main() {
     window_size_callback(window, width, height);
     glfwSetCursorPosCallback(window, &cursor_position_callback);
     glfwSetMouseButtonCallback(window, &mouse_button_callback);
+    glfwSetKeyCallback(window, &key_callback);
 
     glfwSetWindowSizeCallback(window, &window_size_callback);
 
