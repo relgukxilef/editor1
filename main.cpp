@@ -150,7 +150,8 @@ int main() {
     };
 
     mesh my_mesh;
-    my_mesh.vertex_position_capacity = 4;
+    my_mesh.vertex_capacity = 4;
+    my_mesh.vertex_count = 4;
     my_mesh.vertex_array = create_vertex_array(4, {
         {{
             {position, 3, GL_FLOAT, GL_FALSE, 0},

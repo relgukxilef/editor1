@@ -6,7 +6,7 @@ namespace ge1 {
         m(m),
         call(
             m->vertex_array.get_name(), 0,
-            static_cast<int>(m->vertex_position_capacity), program, GL_POINTS
+            static_cast<int>(m->vertex_capacity), program, GL_POINTS
         )
     {
 
