@@ -202,7 +202,7 @@ int main() {
     my_mesh.face_vertex_position_buffer = face_position_buffer;
     my_mesh.vertex_selection_buffer = selection_buffer;
 
-    my_mesh.vertex_selection.resize(4);
+    my_mesh.vertex_selections.resize(4);
 
     my_mesh.vertex_positions = {
         {-1, -1, 0},

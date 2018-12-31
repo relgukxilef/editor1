@@ -44,13 +44,13 @@ namespace ge1 {
         glBufferData(
             GL_COPY_WRITE_BUFFER,
             vertex_capacity,
-            vertex_selection.data(), GL_DYNAMIC_DRAW
+            vertex_selections.data(), GL_DYNAMIC_DRAW
         );
     }
 
     void mesh::add_vertex(vec3 position) {
         vertex_positions.push_back(position);
-        vertex_selection.push_back(false);
+        get_vertex_selections().push_back(false);
 
         vertex_count++;
 

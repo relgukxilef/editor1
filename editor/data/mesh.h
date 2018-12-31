@@ -7,6 +7,7 @@
 #include <glm/glm.hpp>
 
 #include "vertex_array.h"
+#include "editor/algorithm/selection.h"
 
 namespace ge1 {
 
@@ -18,8 +19,15 @@ namespace ge1 {
         void resize_vertex_buffer(unsigned int size);
         void add_vertex(glm::vec3 position);
 
+        selection_vector<
+            std::vector<unsigned char>, std::unordered_set<unsigned int>
+        > get_vertex_selections();
+        selection_set<
+            std::vector<unsigned char>, std::unordered_set<unsigned int>
+        > get_selected_vertices();
+
         std::vector<glm::vec3> vertex_positions;
-        std::vector<unsigned char> vertex_selection;
+        std::vector<unsigned char> vertex_selections;
 
         std::vector<glm::vec3> face_vertex_positions;
 
@@ -41,4 +49,17 @@ namespace ge1 {
         unsigned int face_count = 0;
         unsigned int face_capacity = 0;
     };
+
+    inline selection_vector<
+        std::vector<unsigned char>,
+        std::unordered_set<unsigned int>
+    > mesh::get_vertex_selections() {
+        return make_selection_vector(vertex_selections, selected_vertices);
+    }
+
+    inline selection_set<
+        std::vector<unsigned char>, std::unordered_set<unsigned int>
+    > mesh::get_selected_vertices() {
+        return make_selection_set(vertex_selections, selected_vertices);
+    }
 }

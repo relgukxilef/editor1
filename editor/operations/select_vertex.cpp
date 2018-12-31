@@ -1,5 +1,7 @@
 #include "select_vertex.h"
 
+#include "editor/algorithm/selection.h"
+
 using namespace glm;
 
 namespace ge1 {
@@ -17,14 +19,9 @@ namespace ge1 {
         auto& m = c.current_object->m;
 
         if (m->pick_vertex(matrix, mouse_ndc, selected_vertex)) {
-            bool selection = !m->vertex_selection[selected_vertex];
-            m->vertex_selection[selected_vertex] = selection;
-
-            if (selection) {
-                m->selected_vertices.insert(selected_vertex);
-            } else {
-                m->selected_vertices.erase(selected_vertex);
-            }
+            auto vertex_selection = m->get_vertex_selections();
+            bool selection = !vertex_selection[selected_vertex];
+            vertex_selection[selected_vertex] = selection;
 
             glBindBuffer(
                 GL_COPY_WRITE_BUFFER, m->vertex_selection_buffer.get_name()
