@@ -6,15 +6,20 @@ namespace ge1 {
 
     template<class T>
     struct span {
+        span();
         span(const T* begin, const T* end);
         span(std::initializer_list<T> values);
 
         const T* begin() const;
         const T* end() const;
         bool empty() const;
+        unsigned int size() const;
 
         const T* begin_pointer, * end_pointer;
     };
+
+    template<class T>
+    span<T>::span() : span(nullptr, nullptr) {}
 
     template<class T>
     span<T>::span(const T* begin, const T* end) :
@@ -23,7 +28,7 @@ namespace ge1 {
 
     template<class T>
     span<T>::span(std::initializer_list<T> values) :
-        begin_pointer(values.begin()), end_pointer(values.end())
+        span(values.begin(), values.end())
     {}
 
     template<class T>
@@ -39,6 +44,11 @@ namespace ge1 {
     template<class T>
     bool span<T>::empty() const {
         return begin() == end();
+    }
+
+    template<class T>
+    unsigned int span<T>::size() const {
+        return end_pointer - begin_pointer;
     }
 
 }

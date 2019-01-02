@@ -1,0 +1,35 @@
+bool vector with list of set indices
+    vector<bool> selected
+    set<Index> indices
+    
+    selection.push_back(bool)
+    selection.pop_back()
+    selection.operator[](Index).operator=(bool)
+    indices.begin()
+    indices.end()
+    indices.begin().operator++
+
+1 to m mapping
+    vector<IndexA> b
+    multimap<IndexA, IndexB> a
+    
+    map.push_back(IndexA)
+    map.pop_back()
+    map.operator[](IndexB).operator=(IndexA)
+    multimap.operator[](IndexA).operator=(IndexB)
+
+vector_struct
+    tuple<vector<Types>&...>
+    vector<Type>
+    
+    push_back(Type)
+    pop_back()
+    operator[](Index)->operator=(Type)
+    operator[](Index).operator=(reference)
+    
+gpu backed buffer
+    vector<Type> elements
+    
+    push_back(Index)
+    pop_back()
+    operator[](Index).operator=(Type)

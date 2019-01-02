@@ -22,13 +22,6 @@ namespace ge1 {
             auto vertex_selection = m->get_vertex_selections();
             bool selection = !vertex_selection[selected_vertex];
             vertex_selection[selected_vertex] = selection;
-
-            glBindBuffer(
-                GL_COPY_WRITE_BUFFER, m->vertex_selection_buffer.get_name()
-            );
-            glBufferSubData(
-                GL_COPY_WRITE_BUFFER, selected_vertex, 1, &selection
-            );
         }
 
         return status::finished;

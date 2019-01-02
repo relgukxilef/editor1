@@ -47,7 +47,8 @@ HEADERS += \
     editor/data/object.h \
     editor/operations/select_vertex.h \
     editor/operations/add_face.h \
-    editor/algorithm/selection.h
+    editor/algorithm/selection.h \
+    buffer_vector.h
 
 DISTFILES += \
     shaders/solid.fs \

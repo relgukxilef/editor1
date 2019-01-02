@@ -29,7 +29,8 @@ namespace ge1 {
         return name;
     }
 
-    GLuint create_vertex_array(unsigned int vertex_capacity,
+    GLuint create_vertex_array(
+        unsigned int vertex_capacity,
         span<attribute_pack_parameter> attribute_packs,
         unsigned int draw_indirect_capacity, GLuint *draw_indirect_buffer,
         GLenum draw_indirect_usage
@@ -41,10 +42,12 @@ namespace ge1 {
         for (auto attribute_pack : attribute_packs) {
             glCreateBuffers(1, attribute_pack.vertex_buffer);
             glBindBuffer(GL_ARRAY_BUFFER, *attribute_pack.vertex_buffer);
-            glBufferData(
-                GL_ARRAY_BUFFER, vertex_capacity * attribute_pack.stride,
-                nullptr, attribute_pack.usage
-            );
+            if (vertex_capacity > 0) {
+                glBufferData(
+                    GL_ARRAY_BUFFER, vertex_capacity * attribute_pack.stride,
+                    nullptr, attribute_pack.usage
+                );
+            }
 
             for (auto attribute : attribute_pack.attributes) {
                 glEnableVertexAttribArray(attribute.index);

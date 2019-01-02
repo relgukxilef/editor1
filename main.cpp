@@ -178,12 +178,8 @@ int main() {
     };
 
     mesh my_mesh;
-    my_mesh.vertex_capacity = 4;
-    my_mesh.vertex_count = 4;
-    my_mesh.face_capacity = 2;
-    my_mesh.face_count = 2;
 
-    my_mesh.vertex_array = create_vertex_array(4, {
+    my_mesh.vertex_array = create_vertex_array(0, {
         {{
             {position, 3, GL_FLOAT, GL_FALSE, 0},
         }, 3 * sizeof(float), GL_STATIC_DRAW, &position_buffer},
@@ -192,42 +188,15 @@ int main() {
         }, 1, GL_STATIC_DRAW, &selection_buffer},
     });
 
-    my_mesh.face_vertex_array = create_vertex_array(6, {
+    my_mesh.face_vertex_array = create_vertex_array(0, {
         {{
             {position, 3, GL_FLOAT, GL_FALSE, 0},
         }, 3 * sizeof(float), GL_STATIC_DRAW, &face_position_buffer}
     });
 
-    my_mesh.vertex_position_buffer = position_buffer;
-    my_mesh.face_vertex_position_buffer = face_position_buffer;
-    my_mesh.vertex_selection_buffer = selection_buffer;
-
-    my_mesh.vertex_selections.resize(4);
-
-    my_mesh.vertex_positions = {
-        {-1, -1, 0},
-        {-1, 1, 0},
-        {1, -1, 0},
-        {1, 1, 0},
-    };
-    my_mesh.face_vertex_positions = {
-        {-1, -1, 0}, {-1, 1, 0}, {1, -1, 0},
-        {1, -1, 0}, {-1, 1, 0}, {1, 1, 0},
-    };
-    my_mesh.vertex_face_vertices = {
-        {0, 0}, {1, 1}, {2, 2}, {2, 3}, {1, 4}, {3, 5},
-    };
-
-    glBindBuffer(GL_COPY_WRITE_BUFFER, position_buffer);
-    glBufferSubData(
-        GL_COPY_WRITE_BUFFER, 0, 4 * 3 * sizeof(float),
-        my_mesh.vertex_positions.data()
-    );
-    glBindBuffer(GL_COPY_WRITE_BUFFER, face_position_buffer);
-    glBufferSubData(
-        GL_COPY_WRITE_BUFFER, 0, 6 * 3 * sizeof(float),
-        my_mesh.face_vertex_positions.data()
-    );
+    my_mesh.face_vertex_positions.buffer = face_position_buffer;
+    my_mesh.vertex_positions.buffer = position_buffer;
+    my_mesh.vertex_selections.buffer = selection_buffer;
 
     unique_shader fragment_utils = compile_shader(
         GL_FRAGMENT_SHADER, "shaders/utils.fs"

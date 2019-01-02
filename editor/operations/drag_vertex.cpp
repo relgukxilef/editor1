@@ -19,7 +19,7 @@ namespace ge1 {
         ) {
             // TODO: calculation is redundant in pick_vertex
             vec4 vertex_ndc = matrix * vec4(
-                c.current_object->m->vertex_positions[selected_vertex], 1
+                vec3(c.current_object->m->vertex_positions[selected_vertex]), 1
             );
             ndc_z = vertex_ndc.z / vertex_ndc.w;
             return status::running;
@@ -38,24 +38,7 @@ namespace ge1 {
         vec4 t = inverse_matrix * vec4(mouse_ndc, ndc_z, 1);
         t /= t.w;
 
-        m->vertex_positions[selected_vertex] =
-            vec3(t);
-
-        glBindBuffer(
-            GL_COPY_WRITE_BUFFER,
-            m->vertex_position_buffer.get_name()
-        );
-        glBufferSubData(
-            GL_COPY_WRITE_BUFFER,
-            selected_vertex * 3 * sizeof(float),
-            3 * sizeof(float),
-            &t
-        );
-
-        glBindBuffer(
-            GL_COPY_WRITE_BUFFER,
-            m->face_vertex_position_buffer.get_name()
-        );
+        m->vertex_positions[selected_vertex] = vec3(t);
 
         auto face_vertices =
             m->vertex_face_vertices.equal_range(selected_vertex);
@@ -64,15 +47,7 @@ namespace ge1 {
             face_vertex != face_vertices.second;
             face_vertex++
         ) {
-            m->face_vertex_positions[face_vertex->second] =
-                vec3(t);
-
-            glBufferSubData(
-                GL_COPY_WRITE_BUFFER,
-                face_vertex->second * 3 * sizeof(float),
-                3 * sizeof(float),
-                &t
-            );
+            m->face_vertex_positions[face_vertex->second] = vec3(t);
         }
 
         return status::running;
