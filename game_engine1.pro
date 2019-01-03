@@ -23,7 +23,8 @@ SOURCES += \
     editor/data/context.cpp \
     editor/data/object.cpp \
     editor/operations/select_vertex.cpp \
-    editor/operations/add_face.cpp
+    editor/operations/add_face.cpp \
+    editor/operations/delete_face.cpp
 
 HEADERS += \
     pass.h \
@@ -48,7 +49,8 @@ HEADERS += \
     editor/operations/select_vertex.h \
     editor/operations/add_face.h \
     editor/algorithm/selection.h \
-    buffer_vector.h
+    buffer_vector.h \
+    editor/operations/delete_face.h
 
 DISTFILES += \
     shaders/solid.fs \

@@ -15,11 +15,11 @@ namespace ge1 {
         vec2 mouse_ndc = {x / c.width * 2 - 1, 1 - y / c.height * 2};
 
         if (
-            c.current_object->m->pick_vertex(matrix, mouse_ndc, selected_vertex)
+            c.current_object->m->pick_vertex(matrix, mouse_ndc, vertex)
         ) {
             // TODO: calculation is redundant in pick_vertex
             vec4 vertex_ndc = matrix * vec4(
-                vec3(c.current_object->m->vertex_positions[selected_vertex]), 1
+                vec3(c.current_object->m->vertex_positions[vertex]), 1
             );
             ndc_z = vertex_ndc.z / vertex_ndc.w;
             return status::running;
@@ -38,16 +38,14 @@ namespace ge1 {
         vec4 t = inverse_matrix * vec4(mouse_ndc, ndc_z, 1);
         t /= t.w;
 
-        m->vertex_positions[selected_vertex] = vec3(t);
+        m->vertex_positions[vertex] = vec3(t);
 
-        auto face_vertices =
-            m->vertex_face_vertices.equal_range(selected_vertex);
         for (
-            auto face_vertex = face_vertices.first;
-            face_vertex != face_vertices.second;
-            face_vertex++
+            auto face = m->vertex_face_vertices.lower_bound({vertex, 0});
+            face != m->vertex_face_vertices.lower_bound({vertex + 1, 0});
+            face++
         ) {
-            m->face_vertex_positions[face_vertex->second] = vec3(t);
+            m->face_vertex_positions[face->second] = vec3(t);
         }
 
         return status::running;

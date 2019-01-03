@@ -14,7 +14,7 @@ namespace ge1 {
             context &c, int button, int action, int modifiers
         ) override;
 
-        unsigned int selected_vertex;
+        unsigned int vertex;
         glm::mat4 inverse_matrix;
         float ndc_z;
     };

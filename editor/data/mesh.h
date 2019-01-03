@@ -1,7 +1,7 @@
 #pragma once
 
 #include <vector>
-#include <unordered_map>
+#include <set>
 #include <unordered_set>
 
 #include <glm/glm.hpp>
@@ -20,6 +20,8 @@ namespace ge1 {
         void resize_vertex_buffer(unsigned int size);
         void add_vertex(glm::vec3 position);
 
+        void delete_face(unsigned int face);
+
         selection_vector<
             buffer_vector<unsigned char>, std::unordered_set<unsigned int>
         > get_vertex_selections();
@@ -31,9 +33,9 @@ namespace ge1 {
         buffer_vector<unsigned char> vertex_selections;
 
         buffer_vector<glm::vec3> face_vertex_positions;
+        std::vector<unsigned int> face_vertices;
 
-        std::unordered_multimap<unsigned int, unsigned int>
-            vertex_face_vertices;
+        std::set<std::pair<unsigned int, unsigned int>> vertex_face_vertices;
         std::unordered_set<unsigned int> selected_vertices;
 
         // don't share buffers between meshes for now

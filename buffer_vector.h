@@ -23,6 +23,7 @@ namespace ge1 {
 
         struct reference {
             reference& operator=(T value);
+            reference& operator=(const reference& value);
             operator const T&() const;
 
             unsigned int i;
@@ -104,6 +105,14 @@ namespace ge1 {
         );
 
         return *this;
+    }
+
+    template<class T>
+    typename buffer_vector<T>::reference&
+    buffer_vector<T>::reference::operator=(
+        const buffer_vector::reference& value
+    ) {
+        return operator=(*(owner.begin() + value.i));
     }
 
     template<class T>

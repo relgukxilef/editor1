@@ -24,4 +24,24 @@ namespace ge1 {
         vertex_positions.push_back(position);
         get_vertex_selections().push_back(false);
     }
+
+    void mesh::delete_face(unsigned int face) {
+        for (unsigned int i = 0; i < 3; i++) {
+            auto from = face_vertices.size() - 3 + i;
+            auto to = face * 3 + i;
+            vertex_face_vertices.erase({face_vertices[from], from});
+
+            if (from != to) {
+                vertex_face_vertices.erase({face_vertices[to], to});
+                vertex_face_vertices.insert({face_vertices[from], to});
+                face_vertices[to] = face_vertices[from];
+                face_vertex_positions[to] = face_vertex_positions[from];
+            }
+        }
+
+        for (unsigned int i = 0; i < 3; i++) {
+            face_vertex_positions.pop_back();
+            face_vertices.pop_back();
+        }
+    }
 }
