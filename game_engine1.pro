@@ -24,7 +24,7 @@ SOURCES += \
     editor/data/object.cpp \
     editor/operations/select_vertex.cpp \
     editor/operations/add_face.cpp \
-    editor/operations/delete_face.cpp
+    editor/operations/delete_vertices.cpp
 
 HEADERS += \
     pass.h \
@@ -50,7 +50,7 @@ HEADERS += \
     editor/operations/add_face.h \
     editor/algorithm/selection.h \
     buffer_vector.h \
-    editor/operations/delete_face.h
+    editor/operations/delete_vertices.h
 
 DISTFILES += \
     shaders/solid.fs \

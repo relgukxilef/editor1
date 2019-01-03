@@ -27,15 +27,15 @@ namespace ge1 {
 
     void mesh::delete_face(unsigned int face) {
         for (unsigned int i = 0; i < 3; i++) {
-            auto from = face_vertices.size() - 3 + i;
+            auto last = face_vertices.size() - 3 + i;
             auto to = face * 3 + i;
-            vertex_face_vertices.erase({face_vertices[from], from});
+            vertex_face_vertices.erase({face_vertices[last], last});
 
-            if (from != to) {
+            if (last != to) {
                 vertex_face_vertices.erase({face_vertices[to], to});
-                vertex_face_vertices.insert({face_vertices[from], to});
-                face_vertices[to] = face_vertices[from];
-                face_vertex_positions[to] = face_vertex_positions[from];
+                vertex_face_vertices.insert({face_vertices[last], to});
+                face_vertices[to] = face_vertices[last];
+                face_vertex_positions[to] = face_vertex_positions[last];
             }
         }
 
@@ -43,5 +43,34 @@ namespace ge1 {
             face_vertex_positions.pop_back();
             face_vertices.pop_back();
         }
+    }
+
+    void mesh::delete_vertex(unsigned int vertex) {
+        auto face_vertex = vertex_face_vertices.lower_bound({vertex, 0});
+        while (
+            face_vertex != vertex_face_vertices.lower_bound({vertex + 1, 0})
+        ) {
+            delete_face(face_vertex->second / 3);
+            face_vertex = vertex_face_vertices.lower_bound({vertex, 0});
+        }
+
+        unsigned int last = vertex_positions.size() - 1;
+
+        if (last != vertex) {
+            auto face_vertex = vertex_face_vertices.lower_bound({last, 0});
+            while (face_vertex != vertex_face_vertices.end()) {
+                face_vertices[face_vertex->second] = vertex;
+
+                vertex_face_vertices.erase({last, face_vertex->second});
+                vertex_face_vertices.insert({vertex, face_vertex->second});
+
+                face_vertex = vertex_face_vertices.lower_bound({last, 0});
+            }
+            vertex_positions[vertex] = vertex_positions[last];
+            get_vertex_selections()[vertex] = get_vertex_selections()[last];
+        }
+
+        vertex_positions.pop_back();
+        get_vertex_selections().pop_back();
     }
 }

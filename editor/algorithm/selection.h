@@ -12,7 +12,8 @@ namespace ge1 {
 
         struct reference {
             reference& operator=(bool);
-            operator bool();
+            reference& operator=(const reference&);
+            operator bool() const;
 
             unsigned int i;
             Selected& selected;
@@ -54,8 +55,10 @@ namespace ge1 {
 
     template<class Selected, class Set>
     void selection_vector<Selected, Set>::pop_back() {
+        if (selected[selected.size() - 1]) {
+            set.erase(selected.size() - 1);
+        }
         selected.pop_back();
-        set.erase(selected.size());
     }
 
     template<class Selected, class Set>
@@ -67,14 +70,24 @@ namespace ge1 {
     template<class Selected, class Set>
     typename selection_vector<Selected, Set>::reference&
     selection_vector<Selected, Set>::reference::operator=(bool x) {
-        selected[i] = x;
-        if (x) {
-            set.insert(i);
-        } else {
-            set.erase(i);
+        if (x != selected[i]) {
+            if (x) {
+                set.insert(i);
+            } else {
+                set.erase(i);
+            }
         }
+        selected[i] = x;
 
         return *this;
+    }
+
+    template<class Selected, class Set>
+    typename selection_vector<Selected, Set>::reference&
+    selection_vector<Selected, Set>::reference::operator=(
+        const selection_vector::reference& other
+    ) {
+        return operator=(bool(other));
     }
 
     template<class Selected, class Set>
@@ -85,7 +98,7 @@ namespace ge1 {
     }
 
     template<class Selected, class Set>
-    selection_vector<Selected, Set>::reference::operator bool() {
+    selection_vector<Selected, Set>::reference::operator bool() const {
         return selected[i];
     }
 

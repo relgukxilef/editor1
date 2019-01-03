@@ -21,6 +21,7 @@ namespace ge1 {
         void add_vertex(glm::vec3 position);
 
         void delete_face(unsigned int face);
+        void delete_vertex(unsigned int vertex);
 
         selection_vector<
             buffer_vector<unsigned char>, std::unordered_set<unsigned int>

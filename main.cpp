@@ -17,7 +17,7 @@
 #include "editor/operations/add_vertex.h"
 #include "editor/operations/select_vertex.h"
 #include "editor/operations/add_face.h"
-#include "editor/operations/delete_face.h"
+#include "editor/operations/delete_vertices.h"
 
 using namespace std;
 using namespace glm;
@@ -47,7 +47,7 @@ static drag_vertex drag_vertex_operation;
 static add_vertex add_vertex_operation;
 static select_vertex select_vertex_operation;
 static add_face add_face_operation;
-static delete_face delete_face_operation;
+static delete_vertices delete_face_operation;
 
 void cursor_position_callback(GLFWwindow*, double x, double y) {
     if (current_operation) {
