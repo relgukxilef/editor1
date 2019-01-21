@@ -12,18 +12,13 @@ namespace ge1 {
             c.current_object->face_call.count += 3;
 
             auto vertex = m->selected_vertices.begin();
-            auto face_vertex_count = m->face_vertex_positions.size();
-            m->face_vertex_positions.push_back(m->vertex_positions[*vertex]);
-            m->face_vertices.push_back(*vertex);
-            m->vertex_face_vertices.insert({*vertex, face_vertex_count});
-            vertex++;
-            m->face_vertex_positions.push_back(m->vertex_positions[*vertex]);
-            m->face_vertices.push_back(*vertex);
-            m->vertex_face_vertices.insert({*vertex, face_vertex_count + 1});
-            vertex++;
-            m->face_vertex_positions.push_back(m->vertex_positions[*vertex]);
-            m->face_vertices.push_back(*vertex);
-            m->vertex_face_vertices.insert({*vertex, face_vertex_count + 2});
+            unsigned int vertices[3];
+            for (int i = 0; i < 3; i++) {
+                vertices[i] = *vertex;
+                vertex++;
+            }
+
+            m->add_face(vertices);
         }
 
         return status::finished;

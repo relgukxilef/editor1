@@ -28,6 +28,14 @@ namespace ge1 {
         vertex_selections.push_back(false);
     }
 
+    void mesh::add_face(unsigned int vertex[3]) {
+        for (int i = 0; i < 3; i++) {
+            face_vertex_positions.push_back(vertex_positions[vertex[i]]);
+            vertex_face_vertices.insert({vertex[i], face_vertices.size()});
+            face_vertices.push_back(vertex[i]);
+        }
+    }
+
     void mesh::delete_face(unsigned int face) {
         for (unsigned int i = 0; i < 3; i++) {
             auto last = face_vertices.size() - 1;

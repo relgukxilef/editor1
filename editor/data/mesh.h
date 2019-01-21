@@ -18,6 +18,7 @@ namespace ge1 {
 
         void resize_vertex_buffer(unsigned int size);
         void add_vertex(glm::vec3 position);
+        void add_face(unsigned int vertex[3]);
 
         void delete_face(unsigned int face);
         void delete_vertex(unsigned int vertex);
