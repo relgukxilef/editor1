@@ -7,7 +7,6 @@
 #include <glm/glm.hpp>
 
 #include "vertex_array.h"
-#include "editor/algorithm/selection.h"
 #include "buffer_vector.h"
 
 namespace ge1 {
@@ -23,12 +22,7 @@ namespace ge1 {
         void delete_face(unsigned int face);
         void delete_vertex(unsigned int vertex);
 
-        selection_vector<
-            buffer_vector<unsigned char>, std::unordered_set<unsigned int>
-        > get_vertex_selections();
-        selection_set<
-            buffer_vector<unsigned char>, std::unordered_set<unsigned int>
-        > get_selected_vertices();
+        void set_vertex_selection(unsigned int vertex, bool selected);
 
         buffer_vector<glm::vec3> vertex_positions;
         buffer_vector<unsigned char> vertex_selections;
@@ -44,17 +38,4 @@ namespace ge1 {
 
         unique_vertex_array face_vertex_array;
     };
-
-    inline selection_vector<
-        buffer_vector<unsigned char>,
-        std::unordered_set<unsigned int>
-    > mesh::get_vertex_selections() {
-        return make_selection_vector(vertex_selections, selected_vertices);
-    }
-
-    inline selection_set<
-        buffer_vector<unsigned char>, std::unordered_set<unsigned int>
-    > mesh::get_selected_vertices() {
-        return make_selection_set(vertex_selections, selected_vertices);
-    }
 }

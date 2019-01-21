@@ -50,7 +50,8 @@ HEADERS += \
     editor/operations/add_face.h \
     editor/algorithm/selection.h \
     buffer_vector.h \
-    editor/operations/delete_vertices.h
+    editor/operations/delete_vertices.h \
+    editor/algorithm/mapping.h
 
 DISTFILES += \
     shaders/solid.fs \
