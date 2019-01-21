@@ -70,4 +70,16 @@ namespace ge1 {
     void mesh::set_vertex_selection(unsigned int vertex, bool selected) {
         selection_set(selected_vertices, vertex_selections, vertex, selected);
     }
+
+    void mesh::set_vertex_position(unsigned int vertex, vec3 position) {
+        vertex_positions[vertex] = position;
+
+        for (
+            auto face = vertex_face_vertices.lower_bound({vertex, 0});
+            face != vertex_face_vertices.lower_bound({vertex + 1, 0});
+            face++
+        ) {
+            face_vertex_positions[face->second] = position;
+        }
+    }
 }

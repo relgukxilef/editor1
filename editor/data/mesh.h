@@ -24,6 +24,7 @@ namespace ge1 {
         void delete_vertex(unsigned int vertex);
 
         void set_vertex_selection(unsigned int vertex, bool selected);
+        void set_vertex_position(unsigned int vertex, glm::vec3 position);
 
         buffer_vector<glm::vec3> vertex_positions;
         buffer_vector<unsigned char> vertex_selections;

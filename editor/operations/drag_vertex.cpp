@@ -38,15 +38,7 @@ namespace ge1 {
         vec4 t = inverse_matrix * vec4(mouse_ndc, ndc_z, 1);
         t /= t.w;
 
-        m->vertex_positions[vertex] = vec3(t);
-
-        for (
-            auto face = m->vertex_face_vertices.lower_bound({vertex, 0});
-            face != m->vertex_face_vertices.lower_bound({vertex + 1, 0});
-            face++
-        ) {
-            m->face_vertex_positions[face->second] = vec3(t);
-        }
+        m->set_vertex_position(vertex, t);
 
         return status::running;
     }
