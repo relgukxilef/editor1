@@ -19,6 +19,16 @@ namespace ge1 {
             }
 
             m->add_face(vertices);
+
+        } else if (m->selected_vertices.size() == 2) {
+            auto vertex = m->selected_vertices.begin();
+            std::array<unsigned int, 2> vertices;
+            for (unsigned int i = 0; i < 2; i++) {
+                vertices[i] = *vertex;
+                vertex++;
+            }
+
+            m->add_edge(vertices);
         }
 
         c.current_object->edge_call.count = m->edge_vertices.size();
