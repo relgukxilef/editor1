@@ -28,11 +28,37 @@ namespace ge1 {
         vertex_selections.push_back(false);
     }
 
-    void mesh::add_face(unsigned int vertex[3]) {
-        for (int i = 0; i < 3; i++) {
+    void mesh::add_edge(std::array<unsigned int, 2> vertex) {
+        auto edge_vertex = vertex_edge_vertices.lower_bound({vertex[0], 0});
+        while (
+            edge_vertex != vertex_edge_vertices.upper_bound({vertex[0] + 1, 0})
+        ) {
+            auto edge = edge_vertex->second / 2;
+            if (
+                edge_vertices[edge * 2 + 1 - edge_vertex->second % 2] ==
+                vertex[1]
+            ) {
+                // edge already exists
+                return;
+            }
+            ++edge_vertex;
+        }
+
+        for (unsigned int i = 0; i < 2; i++) {
+            edge_vertex_positions.push_back(vertex_positions[vertex[i]]);
+            vertex_edge_vertices.insert({vertex[i], edge_vertices.size()});
+            edge_vertices.push_back(vertex[i]);
+        }
+    }
+
+    void mesh::add_face(std::array<unsigned int, 3> vertex) {
+        // TODO: check whether face already exists
+        for (unsigned int i = 0; i < 3; i++) {
             face_vertex_positions.push_back(vertex_positions[vertex[i]]);
             vertex_face_vertices.insert({vertex[i], face_vertices.size()});
             face_vertices.push_back(vertex[i]);
+
+            add_edge({vertex[i], vertex[(i + 1) % 3]});
         }
     }
 
@@ -48,6 +74,18 @@ namespace ge1 {
         }
     }
 
+    void mesh::delete_edge(unsigned int edge) {
+        for (unsigned int i = 0; i < 2; i++) {
+            auto last = edge_vertices.size() - 1;
+            auto to = edge * 2 + i;
+
+            mapping_erase_key(vertex_edge_vertices, edge_vertices, to);
+
+            edge_vertex_positions[to] = edge_vertex_positions[last];
+            edge_vertex_positions.pop_back();
+        }
+    }
+
     void mesh::delete_vertex(unsigned int vertex) {
         auto face_vertex = vertex_face_vertices.lower_bound({vertex, 0});
         while (
@@ -57,9 +95,18 @@ namespace ge1 {
             face_vertex = vertex_face_vertices.lower_bound({vertex, 0});
         }
 
+        auto edge_vertex = vertex_edge_vertices.lower_bound({vertex, 0});
+        while (
+            edge_vertex != vertex_edge_vertices.lower_bound({vertex + 1, 0})
+        ) {
+            delete_edge(edge_vertex->second / 2);
+            edge_vertex = vertex_edge_vertices.lower_bound({vertex, 0});
+        }
+
         unsigned int last = vertex_positions.size() - 1;
 
         mapping_erase_value(vertex_face_vertices, face_vertices, last, vertex);
+        mapping_erase_value(vertex_edge_vertices, edge_vertices, last, vertex);
 
         vertex_positions[vertex] = vertex_positions[last];
         vertex_positions.pop_back();
@@ -80,6 +127,14 @@ namespace ge1 {
             face++
         ) {
             face_vertex_positions[face->second] = position;
+        }
+
+        for (
+            auto edge = vertex_edge_vertices.lower_bound({vertex, 0});
+            edge != vertex_edge_vertices.lower_bound({vertex + 1, 0});
+            edge++
+        ) {
+            edge_vertex_positions[edge->second] = position;
         }
     }
 }

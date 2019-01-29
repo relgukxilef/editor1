@@ -17,10 +17,13 @@ namespace ge1 {
         bool pick_vertex(glm::mat4 matrix, glm::vec2 ndc, unsigned int& vertex);
 
         void resize_vertex_buffer(unsigned int size);
+
         void add_vertex(glm::vec3 position);
-        void add_face(unsigned int vertex[3]);
+        void add_edge(std::array<unsigned int, 2> vertex);
+        void add_face(std::array<unsigned int, 3> vertex);
 
         void delete_face(unsigned int face);
+        void delete_edge(unsigned int edge);
         void delete_vertex(unsigned int vertex);
 
         void set_vertex_selection(unsigned int vertex, bool selected);
@@ -32,12 +35,16 @@ namespace ge1 {
         buffer_vector<glm::vec3> face_vertex_positions;
         std::vector<unsigned int> face_vertices;
 
+        buffer_vector<glm::vec3> edge_vertex_positions;
+        std::vector<unsigned int> edge_vertices;
+
         std::set<std::pair<unsigned int, unsigned int>> vertex_face_vertices;
+        std::set<std::pair<unsigned int, unsigned int>> vertex_edge_vertices;
         std::unordered_set<unsigned int> selected_vertices;
 
         // don't share buffers between meshes for now
         unique_vertex_array vertex_array;
-
+        unique_vertex_array edge_vertex_array;
         unique_vertex_array face_vertex_array;
     };
 }

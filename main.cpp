@@ -176,6 +176,7 @@ int main() {
     );
 
     GLuint position_buffer, face_position_buffer, selection_buffer;
+    GLuint edge_position_buffer;
 
     enum attributes : GLuint {
         position, color, selection
@@ -186,19 +187,26 @@ int main() {
     my_mesh.vertex_array = create_vertex_array(0, {
         {{
             {position, 3, GL_FLOAT, GL_FALSE, 0},
-        }, 3 * sizeof(float), GL_STATIC_DRAW, &position_buffer},
+        }, 3 * sizeof(float), GL_DYNAMIC_DRAW, &position_buffer},
         {{
             {selection, 1, GL_UNSIGNED_BYTE, GL_FALSE, 0},
-        }, 1, GL_STATIC_DRAW, &selection_buffer},
+        }, 1, GL_DYNAMIC_DRAW, &selection_buffer},
+    });
+
+    my_mesh.edge_vertex_array = create_vertex_array(0, {
+        {{
+            {position, 3, GL_FLOAT, GL_FALSE, 0},
+        }, 3 * sizeof(float), GL_DYNAMIC_DRAW, &edge_position_buffer}
     });
 
     my_mesh.face_vertex_array = create_vertex_array(0, {
         {{
             {position, 3, GL_FLOAT, GL_FALSE, 0},
-        }, 3 * sizeof(float), GL_STATIC_DRAW, &face_position_buffer}
+        }, 3 * sizeof(float), GL_DYNAMIC_DRAW, &face_position_buffer}
     });
 
     my_mesh.face_vertex_positions.buffer = face_position_buffer;
+    my_mesh.edge_vertex_positions.buffer = edge_position_buffer;
     my_mesh.vertex_positions.buffer = position_buffer;
     my_mesh.vertex_selections.buffer = selection_buffer;
 
@@ -207,6 +215,7 @@ int main() {
     );
 
     GLint solid_model_matrix, point_handle_model_matrix;
+    GLint edge_handle_model_matrix;
 
     unique_program solid_program = compile_program(
         "shaders/solid.vs", nullptr, nullptr, nullptr, "shaders/solid.fs",
@@ -231,6 +240,18 @@ int main() {
         }
     );
 
+    unique_program edge_handle_program = compile_program(
+        "shaders/edge_handle.vs", nullptr, nullptr, nullptr,
+        "shaders/edge_handle.fs",
+        {fragment_utils.get_name()},
+        {{"position", position},},
+        {
+            {"model", &edge_handle_model_matrix}
+        }, {
+            {"view_projection", view_properties},
+        }
+    );
+
     glUseProgram(solid_program.get_name());
     glUniformMatrix4fv(solid_model_matrix, 1, GL_FALSE, value_ptr(mat4(1)));
 
@@ -239,8 +260,14 @@ int main() {
         point_handle_model_matrix, 1, GL_FALSE, value_ptr(mat4(1))
     );
 
+    glUseProgram(edge_handle_program.get_name());
+    glUniformMatrix4fv(
+        edge_handle_model_matrix, 1, GL_FALSE, value_ptr(mat4(1))
+    );
+
     glEnable(GL_POINT_SPRITE);
     glEnable(GL_PROGRAM_POINT_SIZE);
+    glLineWidth(2);
 
     glBindBufferRange(
         GL_UNIFORM_BUFFER, view_properties,
@@ -249,7 +276,8 @@ int main() {
 
     current_context.current_view = new view();
     current_context.current_object = new object(
-        &my_mesh, solid_program.get_name(), point_handle_program.get_name()
+        &my_mesh, solid_program.get_name(), edge_handle_program.get_name(),
+        point_handle_program.get_name()
     );
     current_context.current_view->view_matrix =
         lookAt(vec3(2, 0, 2), {0, 0, 0}, {0, 0, 1});
@@ -265,6 +293,9 @@ int main() {
 
     foreground_pass.renderables.push_back(
         current_context.current_object->face_call
+    );
+    foreground_pass.renderables.push_back(
+        current_context.current_object->edge_call
     );
     foreground_pass.renderables.push_back(
         current_context.current_object->vertex_call

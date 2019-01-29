@@ -12,14 +12,16 @@ namespace ge1 {
             c.current_object->face_call.count += 3;
 
             auto vertex = m->selected_vertices.begin();
-            unsigned int vertices[3];
-            for (int i = 0; i < 3; i++) {
+            std::array<unsigned int, 3> vertices;
+            for (unsigned int i = 0; i < 3; i++) {
                 vertices[i] = *vertex;
                 vertex++;
             }
 
             m->add_face(vertices);
         }
+
+        c.current_object->edge_call.count = m->edge_vertices.size();
 
         return status::finished;
     }

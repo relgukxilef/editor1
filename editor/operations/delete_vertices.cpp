@@ -16,6 +16,8 @@ namespace ge1 {
             vertex = m->selected_vertices.begin();
         }
 
+        c.current_object->edge_call.count = m->edge_vertices.size();
+
         return status::finished;
     }
 }

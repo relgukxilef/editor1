@@ -58,4 +58,6 @@ DISTFILES += \
     shaders/solid.vs \
     shaders/utils.fs \
     shaders/point_handle.fs \
-    shaders/point_handle.vs
+    shaders/point_handle.vs \
+    shaders/edge_handle.fs \
+    shaders/edge_handle.vs
