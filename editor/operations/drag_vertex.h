@@ -9,9 +9,9 @@ namespace ge1 {
         drag_vertex();
 
         status trigger(context& c, double x, double y) override;
-        status mouse_move_event(context &c, double x, double y) override;
+        status mouse_move_event(context& c, double x, double y) override;
         status mouse_button_event(
-            context &c, int button, int action, int modifiers
+            context& c, int button, int action, int modifiers
         ) override;
 
         unsigned int vertex;

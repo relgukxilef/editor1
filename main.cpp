@@ -18,6 +18,7 @@
 #include "editor/operations/select_vertex.h"
 #include "editor/operations/add_face.h"
 #include "editor/operations/delete_vertices.h"
+#include "editor/operations/rotate_view.h"
 
 using namespace std;
 using namespace glm;
@@ -38,8 +39,6 @@ struct unique_glfw {
 
 static unique_glfw glfw;
 
-static GLuint view_properties_buffer;
-
 static operation* current_operation = nullptr;
 static context current_context;
 
@@ -48,6 +47,7 @@ static add_vertex add_vertex_operation;
 static select_vertex select_vertex_operation;
 static add_face add_face_operation;
 static delete_vertices delete_face_operation;
+static rotate_view rotate_view_operation;
 
 void cursor_position_callback(GLFWwindow*, double x, double y) {
     if (current_operation) {
@@ -81,6 +81,8 @@ void mouse_button_callback(
             current_operation = &add_vertex_operation;
         } else if (modifiers & GLFW_MOD_CONTROL) {
             current_operation = &select_vertex_operation;
+        } else if (modifiers & GLFW_MOD_ALT) {
+            current_operation = &rotate_view_operation;
         } else {
             current_operation = &drag_vertex_operation;
         }
@@ -132,7 +134,10 @@ void window_size_callback(GLFWwindow*, int width, int height) {
         radians(45.0f), static_cast<float>(width) / height, 0.1f, 100.0f
     );
 
-    glBindBuffer(GL_COPY_WRITE_BUFFER, view_properties_buffer);
+    glBindBuffer(
+        GL_COPY_WRITE_BUFFER,
+        current_context.current_view->view_properties_buffer
+    );
     glBufferSubData(
         GL_COPY_WRITE_BUFFER, 0, 16 * sizeof(float),
         value_ptr(
@@ -165,12 +170,19 @@ int main() {
         return -1;
     }
 
+    current_context.current_view = new view();
+
     enum uniform_block_bindings : GLuint {
         view_properties
     };
 
-    glGenBuffers(1, &view_properties_buffer);
-    glBindBuffer(GL_COPY_WRITE_BUFFER, view_properties_buffer);
+    glGenBuffers(
+        1, &current_context.current_view->view_properties_buffer
+    );
+    glBindBuffer(
+        GL_COPY_WRITE_BUFFER,
+        current_context.current_view->view_properties_buffer
+    );
     glBufferData(
         GL_COPY_WRITE_BUFFER, 16 * sizeof(float), nullptr, GL_DYNAMIC_DRAW
     );
@@ -271,10 +283,10 @@ int main() {
 
     glBindBufferRange(
         GL_UNIFORM_BUFFER, view_properties,
-        view_properties_buffer, 0, 16 * sizeof(float)
+        current_context.current_view->view_properties_buffer,
+        0, 16 * sizeof(float)
     );
 
-    current_context.current_view = new view();
     current_context.current_object = new object(
         &my_mesh, solid_program.get_name(), edge_handle_program.get_name(),
         point_handle_program.get_name()

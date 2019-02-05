@@ -23,6 +23,7 @@ namespace ge1 {
             );
             ndc_z = vertex_ndc.z / vertex_ndc.w;
             return status::running;
+
         } else {
             return status::finished;
         }
@@ -44,7 +45,7 @@ namespace ge1 {
     }
 
     operation::status drag_vertex::mouse_button_event(
-        context& c, int button, int action, int modifiers
+        context&, int button, int action, int
     ) {
         if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE) {
             return status::finished;
