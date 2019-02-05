@@ -121,20 +121,12 @@ namespace ge1 {
     void mesh::set_vertex_position(unsigned int vertex, vec3 position) {
         vertex_positions[vertex] = position;
 
-        for (
-            auto face = vertex_face_vertices.lower_bound({vertex, 0});
-            face != vertex_face_vertices.lower_bound({vertex + 1, 0});
-            face++
-        ) {
-            face_vertex_positions[face->second] = position;
-        }
+        mapping_for_each(vertex_face_vertices, vertex, [=](unsigned int face){
+            face_vertex_positions[face] = position;
+        });
 
-        for (
-            auto edge = vertex_edge_vertices.lower_bound({vertex, 0});
-            edge != vertex_edge_vertices.lower_bound({vertex + 1, 0});
-            edge++
-        ) {
-            edge_vertex_positions[edge->second] = position;
-        }
+        mapping_for_each(vertex_edge_vertices, vertex, [=](unsigned int edge){
+            edge_vertex_positions[edge] = position;
+        });
     }
 }

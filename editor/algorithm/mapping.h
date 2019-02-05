@@ -35,4 +35,17 @@ namespace ge1 {
             }
         }
     }
+
+    template<class Set, class Callable>
+    void mapping_for_each(
+        const Set& set, unsigned int value, const Callable& callable
+    ) {
+        for (
+            auto key = set.lower_bound({value, 0});
+            key != set.lower_bound({value + 1, 0});
+            key++
+        ) {
+            callable(key->second);
+        }
+    }
 }
