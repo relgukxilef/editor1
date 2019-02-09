@@ -187,12 +187,42 @@ int main() {
         GL_COPY_WRITE_BUFFER, 16 * sizeof(float), nullptr, GL_DYNAMIC_DRAW
     );
 
-    GLuint position_buffer, face_position_buffer, selection_buffer;
-    GLuint edge_position_buffer;
 
     enum attributes : GLuint {
         position, color, selection
     };
+
+    GLuint grid_positions_buffer, grid_colors_buffer;
+    vec3 grid_positions[44], grid_colors[44];
+    for (int i = 0; i <= 10; i++) {
+        grid_positions[i * 4 + 0] = {i - 5, -5, 0};
+        grid_positions[i * 4 + 1] = {i - 5, 5, 0};
+        grid_positions[i * 4 + 2] = {-5, i - 5, 0};
+        grid_positions[i * 4 + 3] = {5, i - 5, 0};
+    }
+    for (auto& i : grid_colors) {
+        i = {0.5, 0.5, 0.5};
+    }
+    auto grid_vertex_array = create_vertex_array(44, {
+        {{
+            {position, 3, GL_FLOAT, GL_FALSE, 0},
+        }, 3 * sizeof(float), GL_STATIC_DRAW, &grid_positions_buffer},
+        {{
+            {color, 3, GL_FLOAT, GL_FALSE, 0},
+        }, 3 * sizeof(float), GL_STATIC_DRAW, &grid_colors_buffer},
+    });
+
+    glBindBuffer(GL_COPY_WRITE_BUFFER, grid_positions_buffer);
+    glBufferSubData(
+        GL_COPY_WRITE_BUFFER, 0, sizeof(grid_positions), &grid_positions
+    );
+    glBindBuffer(GL_COPY_WRITE_BUFFER, grid_colors_buffer);
+    glBufferSubData(
+        GL_COPY_WRITE_BUFFER, 0, sizeof(grid_positions), &grid_colors
+    );
+
+    GLuint position_buffer, face_position_buffer, selection_buffer;
+    GLuint edge_position_buffer;
 
     mesh my_mesh;
 
@@ -294,6 +324,10 @@ int main() {
     current_context.current_view->view_matrix =
         lookAt(vec3(2, 0, 2), {0, 0, 0}, {0, 0, 1});
 
+    draw_call grid_draw_call(
+        grid_vertex_array, 0, 44, solid_program.get_name(), GL_LINES
+    );
+
 
     composition composition;
 
@@ -303,6 +337,7 @@ int main() {
     composition.passes.push_back(background_pass);
     composition.passes.push_back(foreground_pass);
 
+    foreground_pass.renderables.push_back(grid_draw_call);
     foreground_pass.renderables.push_back(
         current_context.current_object->face_call
     );
