@@ -192,7 +192,9 @@ int main() {
         position, color, selection
     };
 
-    GLuint grid_positions_buffer, grid_colors_buffer;
+    GLuint widget_positions_buffer, widget_colors_buffer;
+    GLuint widget_draw_indirect_buffer;
+
     vec3 grid_positions[44], grid_colors[44];
     for (int i = 0; i <= 10; i++) {
         grid_positions[i * 4 + 0] = {i - 5, -5, 0};
@@ -203,22 +205,44 @@ int main() {
     for (auto& i : grid_colors) {
         i = {0.5, 0.5, 0.5};
     }
-    auto grid_vertex_array = create_vertex_array(44, {
-        {{
-            {position, 3, GL_FLOAT, GL_FALSE, 0},
-        }, 3 * sizeof(float), GL_STATIC_DRAW, &grid_positions_buffer},
-        {{
-            {color, 3, GL_FLOAT, GL_FALSE, 0},
-        }, 3 * sizeof(float), GL_STATIC_DRAW, &grid_colors_buffer},
-    });
 
-    glBindBuffer(GL_COPY_WRITE_BUFFER, grid_positions_buffer);
-    glBufferSubData(
-        GL_COPY_WRITE_BUFFER, 0, sizeof(grid_positions), &grid_positions
+    GLuint grid_mesh;
+
+    auto widget_vertex_array = create_vertex_array(
+        {
+            {{
+                {position, 3, GL_FLOAT, GL_FALSE, 0},
+            }, 3 * sizeof(float), GL_STATIC_DRAW, &widget_positions_buffer},
+            {{
+                {color, 3, GL_FLOAT, GL_FALSE, 0},
+            }, 3 * sizeof(float), GL_STATIC_DRAW, &widget_colors_buffer},
+        }, {
+        }, {
+            {44, 1, &grid_mesh, nullptr}
+        },
+        &widget_draw_indirect_buffer
     );
-    glBindBuffer(GL_COPY_WRITE_BUFFER, grid_colors_buffer);
+
+    draw_arrays_indirect_command widget_commands[] {
+        {44, 1, grid_mesh, 0}
+    };
+
+    // TODO: create helper function for uploading static geometry
+    glBindBuffer(GL_COPY_WRITE_BUFFER, widget_positions_buffer);
     glBufferSubData(
-        GL_COPY_WRITE_BUFFER, 0, sizeof(grid_positions), &grid_colors
+        GL_COPY_WRITE_BUFFER,
+        grid_mesh * sizeof(grid_positions),
+        sizeof(grid_positions), &grid_positions
+    );
+    glBindBuffer(GL_COPY_WRITE_BUFFER, widget_colors_buffer);
+    glBufferSubData(
+        GL_COPY_WRITE_BUFFER,
+        grid_mesh * sizeof(grid_colors),
+        sizeof(grid_colors), &grid_colors
+    );
+    glBindBuffer(GL_COPY_WRITE_BUFFER, widget_draw_indirect_buffer);
+    glBufferSubData(
+        GL_COPY_WRITE_BUFFER, 0, sizeof(widget_commands), &widget_commands
     );
 
     GLuint position_buffer, face_position_buffer, selection_buffer;
@@ -324,8 +348,8 @@ int main() {
     current_context.current_view->view_matrix =
         lookAt(vec3(2, 0, 2), {0, 0, 0}, {0, 0, 1});
 
-    draw_call grid_draw_call(
-        grid_vertex_array, 0, 44, solid_program.get_name(), GL_LINES
+    multi_draw_arrays_indirect_call grid_draw_call(
+        widget_vertex_array, nullptr, 1, solid_program.get_name(), GL_LINES
     );
 
 

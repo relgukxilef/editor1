@@ -17,8 +17,8 @@ namespace ge1 {
         mesh* m;
 
         // no multi draw for now
-        draw_call face_call;
-        draw_call edge_call;
-        draw_call vertex_call;
+        draw_arrays_call face_call;
+        draw_arrays_call edge_call;
+        draw_arrays_call vertex_call;
     };
 }
