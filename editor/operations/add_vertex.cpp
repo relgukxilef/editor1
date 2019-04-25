@@ -7,8 +7,11 @@ namespace ge1 {
     operation::status add_vertex::trigger(
         context& c, double x, double y
     ) {
-        auto& object = *c.current_object;
+        if (!c.current_object) {
+            return status::finished;
+        }
 
+        auto& object = *c.current_object;
         auto matrix =
             c.current_view->projection_matrix *
             c.current_view->view_matrix * object.model_matrix;
@@ -22,10 +25,10 @@ namespace ge1 {
         vec4 v = inverse_matrix * vec4(mouse_ndc, ndc_z, 1);
         v /= v.w;
 
-        object.m->add_vertex(vec3(v));
+        /*object.m->add_vertex(vec3(v));
 
         // TODO: update call for all objects using this mesh
-        object.vertex_call.count++;
+        object.vertex_call.count++;*/
 
         return status::finished;
     }

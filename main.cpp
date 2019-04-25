@@ -12,6 +12,9 @@
 #include "resources.h"
 #include "draw_call.h"
 #include "program.h"
+
+#include "editor/data/mesh.h"
+
 #include "editor/operation.h"
 #include "editor/operations/drag_vertex.h"
 #include "editor/operations/add_vertex.h"
@@ -248,33 +251,41 @@ int main() {
     GLuint position_buffer, face_position_buffer, selection_buffer;
     GLuint edge_position_buffer;
 
-    mesh my_mesh;
+    // create a mesh format
+    mesh_format solid;
 
-    my_mesh.vertex_array = create_vertex_array(0, {
-        {{
-            {position, 3, GL_FLOAT, GL_FALSE, 0},
-        }, 3 * sizeof(float), GL_DYNAMIC_DRAW, &position_buffer},
-        {{
-            {selection, 1, GL_UNSIGNED_BYTE, GL_FALSE, 0},
-        }, 1, GL_DYNAMIC_DRAW, &selection_buffer},
-    });
+    // add a vbo with vertex data
+    auto vertex_array = solid.add_array(1);
+    auto position_attribute = solid.add_float_attribute(vertex_array, 3);
+    auto normal_attribute = solid.add_float_attribute(vertex_array, 3);
 
-    my_mesh.edge_vertex_array = create_vertex_array(0, {
-        {{
-            {position, 3, GL_FLOAT, GL_FALSE, 0},
-        }, 3 * sizeof(float), GL_DYNAMIC_DRAW, &edge_position_buffer}
-    });
+    // add a vbo with face data
+    auto face_array = solid.add_array(3);
+    // faces reference vertices
+    auto face_vertex_attribute = solid.add_reference_attribute(
+        face_array, vertex_array
+    );
+    // vertex positions and normals are copied to faces
+    /*auto face_position_attribut = add_vertex_float_copy_dependency(
+        solid_format, face_array, face_vertex_attribute, position_attribute
+    );
+    auto face_normal_attribut = add_vertex_float_copy_dependency(
+        solid_format, face_array, face_vertex_attribute, normal_attribute
+    );*/
 
-    my_mesh.face_vertex_array = create_vertex_array(0, {
-        {{
-            {position, 3, GL_FLOAT, GL_FALSE, 0},
-        }, 3 * sizeof(float), GL_DYNAMIC_DRAW, &face_position_buffer}
-    });
+    // add a mesh
+    auto rectangle_mesh = solid.add_mesh();
 
-    my_mesh.face_vertex_positions.buffer = face_position_buffer;
-    my_mesh.edge_vertex_positions.buffer = edge_position_buffer;
-    my_mesh.vertex_positions.buffer = position_buffer;
-    my_mesh.vertex_selections.buffer = selection_buffer;
+    // add a vertex
+    solid.add_patches(rectangle_mesh, vertex_array, nullptr, 4);
+    solid.set_float_values(
+        rectangle_mesh, position_attribute, 0, {
+            -1.f, -1.f, 0.f, 1.f, -1.f, 0.f, -1.f, 1.f, 0.f, 1.f, 1.f, 0.f
+        }
+    );
+    unsigned references[] {0, 1, 2, 2, 1, 3};
+    unsigned *reference_attributes = references;
+    solid.add_patches(rectangle_mesh, face_array, &reference_attributes, 2);
 
     unique_shader fragment_utils = compile_shader(
         GL_FRAGMENT_SHADER, "shaders/utils.fs"
@@ -341,10 +352,10 @@ int main() {
         0, 16 * sizeof(float)
     );
 
-    current_context.current_object = new object(
+    /*current_context.current_object = new object(
         &my_mesh, solid_program.get_name(), edge_handle_program.get_name(),
         point_handle_program.get_name()
-    );
+    );*/
     current_context.current_view->view_matrix =
         lookAt(vec3(2, 0, 2), {0, 0, 0}, {0, 0, 1});
 
@@ -362,7 +373,7 @@ int main() {
     composition.passes.push_back(foreground_pass);
 
     foreground_pass.renderables.push_back(grid_draw_call);
-    foreground_pass.renderables.push_back(
+    /*foreground_pass.renderables.push_back(
         current_context.current_object->face_call
     );
     foreground_pass.renderables.push_back(
@@ -370,7 +381,7 @@ int main() {
     );
     foreground_pass.renderables.push_back(
         current_context.current_object->vertex_call
-    );
+    );*/
 
 
     int width, height;

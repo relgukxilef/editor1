@@ -1,0 +1,71 @@
+
+mesh_format
+    meshes (arary of structs, most operations will take on individual meshes)
+        arrays (don't care)
+            attributes (struct of arrays, most operations will work on a subset of the attributes)
+                vertices (array)
+    objects
+        attributes (struct of arrays)
+            objects (array)
+
+
+add_patch(array)
+    push_back on each attribute in the array
+add_mesh(format)
+    push_back on meshes with new arrays for vertices
+add_array(format)
+    for each in meshes push_back on arrays with empty array
+add_vertex_attribute(array)
+    for each in meshes push_back on attributes with new array with enough space for all vertices
+add_vertex_reference(array, reference_array)
+add_object_attribute(format)
+    for each in objects push_back on attributes with new array with enough space for all objects
+
+
+Given an array what array-reference-pairs point to it?
+Given a value what array-attribute-pairs are derived from it?
+
+Ways of storing a 2D array
+    as array of arrays
+        iteration is very cheap
+        elements are packed
+        need two indices to reference element
+
+    as single array containing double linked lists for each sub-set of the elements
+        iteration is reasonably cheap
+        bad caching
+        need only one index
+
+
+mesh_format
+    <type>_attributes[attribute]
+        array
+        array_attributes_next
+        array_attributes_previous
+
+        <type>_copy_dependency_head
+
+    reference_attributes[attribute]
+        array
+        array_attributes_next
+        array_attributes_previous
+
+        target_array
+        target_array_next // next reference_attribute pointing to that target
+        target_array_previous
+
+    <type>_copy_dependency[attribute]
+        array
+        array_attributes_next
+        array_attributes_previous
+
+        reference // reference to follow
+        attribute // attribute to copy
+        // attribute.array == reference.target_array
+
+        dependency_next
+        dependency_previous
+
+    arrays[array]
+        <type>_head
+        target_array_head // first reference_attribute pointing to this

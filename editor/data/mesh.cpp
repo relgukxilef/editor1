@@ -1,132 +1,347 @@
 #include "mesh.h"
 
-#include "editor/algorithm/selection.h"
-#include "editor/algorithm/mapping.h"
-
-using namespace glm;
+#include <cassert>
+#include <cstdlib>
 
 namespace ge1 {
 
-    bool mesh::pick_vertex(mat4 matrix, vec2 ndc, unsigned int& vertex_index) {
-        unsigned int i = 0;
-        for (auto& vertex : vertex_positions) {
-            vec4 vertex_ndc = matrix * vec4(vertex, 1);
-            vertex_ndc /= vertex_ndc.w;
-            // TODO: respect aspect ratio
-            if (length(vec2(vertex_ndc) - ndc) < 0.1f) {
-                vertex_index = i;
-                return true;
-            }
-            i++;
+    template<class Type>
+    void resize(Type *&array, unsigned new_size) {
+        static_assert(
+            std::is_trivially_copyable<Type>::value,
+            "'array' must be trivially copyable!"
+        );
+
+        void *new_array = std::realloc(array, new_size * sizeof(Type));
+        if (new_array) {
+            array = reinterpret_cast<Type*>(new_array);
+        } else {
+            throw std::bad_alloc();
+        }
+    }
+
+    template<class Type>
+    void resize(Type *&array, unsigned size, unsigned new_size) {
+        // TODO: use std::aligned_storage
+        Type *new_array = new Type[new_size];
+        for (auto i = 0u; i < size; i++) {
+            new_array[i] = std::move(array[i]);
+        }
+        delete[] array;
+        array = new_array;
+    }
+
+    void mesh_format::set_reference_values(
+        unsigned mesh, unsigned attribute,
+        unsigned first, fast::span<const unsigned> values
+    ) {
+        auto reference = meshes[mesh].references[attribute];
+        for (auto value : values) {
+            reference.set(first, value);
+            // TODO: update copies
+            first++;
+        }
+    }
+
+    void mesh_format::set_float_values(
+        unsigned mesh, unsigned attribute,
+        unsigned first, fast::span<const float> values
+    ) {
+        auto m = meshes[mesh];
+        const auto floats = m.floats[attribute];
+
+        auto vertex = first;
+        for (auto value : values) {
+            floats[vertex] = value;
+            vertex++;
         }
 
-        return false;
-    }
-
-    void mesh::add_vertex(vec3 position) {
-        vertex_positions.push_back(position);
-        vertex_selections.push_back(false);
-    }
-
-    void mesh::add_edge(std::array<unsigned int, 2> vertex) {
-        auto edge_vertex = vertex_edge_vertices.lower_bound({vertex[0], 0});
-        while (
-            edge_vertex != vertex_edge_vertices.upper_bound({vertex[0] + 1, 0})
+        // for each dependent copy attribute
+        for (
+            auto copy_attribute :
+            float_copy_dependencies.reference.keys(attribute)
         ) {
-            auto edge = edge_vertex->second / 2;
-            if (
-                edge_vertices[edge * 2 + 1 - edge_vertex->second % 2] ==
-                vertex[1]
+            const auto reference_attribute =
+                float_copy_dependencies.reference.value[copy_attribute];
+            const auto copies = m.float_copies[copy_attribute];
+            vertex = first;
+            for (auto value : values) {
+                // determine dependent vertices
+                for (
+                    auto copy_vertex :
+                    meshes[mesh].references[reference_attribute].keys(vertex)
+                ) {
+                    copies[copy_vertex] = value;
+                }
+                vertex++;
+            }
+        }
+    }
+
+    unsigned mesh_format::add_patches(
+        unsigned mesh, unsigned array,
+        unsigned** references, unsigned count
+    ) {
+        auto m = meshes[mesh];
+
+        auto size = m.arrays_size[array];
+        auto capacity = m.arrays_capacity[array];
+        auto patch_size = vertex_arrays.patch_size[array];
+        if (size + count * patch_size > capacity) {
+            capacity = std::max(capacity * 2, capacity + count * patch_size);
+
+            for (auto attribute : float_attributes.array.keys(array)) {
+                resize(m.floats[attribute], capacity);
+            }
+
+            for (auto attribute : reference_attributes.array.keys(array)) {
+                resize(m.references[attribute].value, capacity);
+                resize(m.references[attribute].next, capacity);
+                resize(m.references[attribute].previous, capacity);
+            }
+
+            for (
+                auto attribute : reference_attributes.target_array.keys(array)
             ) {
-                // edge already exists
-                return;
+                resize(m.references[attribute].size, capacity);
+                resize(m.references[attribute].first, capacity);
             }
-            ++edge_vertex;
+
+            m.arrays_capacity[array] = capacity;
         }
 
-        for (unsigned int i = 0; i < 2; i++) {
-            edge_vertex_positions.push_back(vertex_positions[vertex[i]]);
-            vertex_edge_vertices.insert({vertex[i], edge_vertices.size()});
-            edge_vertices.push_back(vertex[i]);
+        for (auto attribute : float_attributes.array.keys(array)) {
+            auto f = m.floats[attribute];
+            for (auto i = 0u; i < count * patch_size; i++) {
+                f[size + i] = 0;
+            }
         }
-    }
 
-    void mesh::add_face(std::array<unsigned int, 3> vertex) {
-        // TODO: check whether face already exists
-        for (unsigned int i = 0; i < 3; i++) {
-            face_vertex_positions.push_back(vertex_positions[vertex[i]]);
-            vertex_face_vertices.insert({vertex[i], face_vertices.size()});
-            face_vertices.push_back(vertex[i]);
-
-            add_edge({vertex[i], vertex[(i + 1) % 3]});
-        }
-    }
-
-    void mesh::delete_face(unsigned int face) {
-        for (unsigned int i = 0; i < 3; i++) {
-            auto last = face_vertices.size() - 1;
-            auto to = face * 3 + i;
-
-            mapping_erase_key(vertex_face_vertices, face_vertices, to);
-
-            face_vertex_positions[to] = face_vertex_positions[last];
-            face_vertex_positions.pop_back();
-        }
-    }
-
-    void mesh::delete_edge(unsigned int edge) {
-        for (unsigned int i = 0; i < 2; i++) {
-            auto last = edge_vertices.size() - 1;
-            auto to = edge * 2 + i;
-
-            mapping_erase_key(vertex_edge_vertices, edge_vertices, to);
-
-            edge_vertex_positions[to] = edge_vertex_positions[last];
-            edge_vertex_positions.pop_back();
-        }
-    }
-
-    void mesh::delete_vertex(unsigned int vertex) {
-        auto face_vertex = vertex_face_vertices.lower_bound({vertex, 0});
-        while (
-            face_vertex != vertex_face_vertices.lower_bound({vertex + 1, 0})
+        for (
+            auto reference_attribute : reference_attributes.array.keys(array)
         ) {
-            delete_face(face_vertex->second / 3);
-            face_vertex = vertex_face_vertices.lower_bound({vertex, 0});
+            auto reference = m.references[reference_attribute];
+            for (auto i = 0u; i < count * patch_size; i++) {
+                reference.push_back(size + i, (*references)[i]);
+                // TODO: update copies
+            }
+            references++;
         }
 
-        auto edge_vertex = vertex_edge_vertices.lower_bound({vertex, 0});
-        while (
-            edge_vertex != vertex_edge_vertices.lower_bound({vertex + 1, 0})
+        for (auto attribute : reference_attributes.target_array.keys(array)) {
+            for (auto i = 0u; i < count * patch_size; i++) {
+                m.references[attribute].value_push_back(size + i);
+            }
+        }
+
+        m.arrays_size[array] = size + count * patch_size;
+        return size;
+    }
+
+    unsigned mesh_format::remove_patch(
+        unsigned mesh, unsigned array, unsigned patch
+    ) {
+        auto m = meshes[mesh];
+
+        m.arrays_size[array]--;
+        auto last = m.arrays_size[array];
+        // TODO: remove dependant patches
+
+        // scalars
+        for (auto attribute : float_attributes.array.keys(array)) {
+            m.floats[attribute][patch] = m.floats[attribute][last];
+        }
+
+        // references
+        for (
+            auto reference_attribute : reference_attributes.array.keys(array)
         ) {
-            delete_edge(edge_vertex->second / 2);
-            edge_vertex = vertex_edge_vertices.lower_bound({vertex, 0});
+            // move last to patch
+            auto &map = m.references[reference_attribute];
+            map.set(
+                patch, map.value[last]
+            );
+            map.pop_back(last);
         }
 
-        unsigned int last = vertex_positions.size() - 1;
+        // update references to last
+        for (
+            auto reference_attribute :
+            reference_attributes.target_array.keys(array)
+        ) {
+            for (
+                auto reference_patch :
+                m.references[reference_attribute].keys(last)
+            ) {
+                m.references[reference_attribute].set(reference_patch, patch);
+            }
+        }
 
-        mapping_erase_value(vertex_face_vertices, face_vertices, last, vertex);
-        mapping_erase_value(vertex_edge_vertices, edge_vertices, last, vertex);
-
-        vertex_positions[vertex] = vertex_positions[last];
-        vertex_positions.pop_back();
-
-        selection_erase(selected_vertices, vertex_selections, vertex);
+        return last;
     }
 
-    void mesh::set_vertex_selection(unsigned int vertex, bool selected) {
-        selection_set(selected_vertices, vertex_selections, vertex, selected);
+    unsigned mesh_format::add_array(unsigned patch_size) {
+        if (array_size == array_capacity) {
+            array_capacity = std::max(array_capacity * 2, 1u);
+            resize(vertex_arrays.name, array_size, array_capacity);
+            resize(vertex_arrays.patch_size, array_capacity);
+
+            resize(float_attributes.array.size, array_capacity);
+            resize(float_attributes.array.first, array_capacity);
+            resize(reference_attributes.array.size, array_capacity);
+            resize(reference_attributes.array.first, array_capacity);
+            resize(reference_attributes.target_array.size, array_capacity);
+            resize(reference_attributes.target_array.first, array_capacity);
+
+            for (auto i = 0u; i < mesh_size; i++) {
+                resize(meshes[i].arrays_size, array_capacity);
+                resize(meshes[i].arrays_capacity, array_capacity);
+            }
+        }
+
+        vertex_arrays.name[array_size] = "new array";
+        vertex_arrays.patch_size[array_size] = patch_size;
+
+        float_attributes.array.value_push_back(array_size);
+        reference_attributes.array.value_push_back(array_size);
+        reference_attributes.target_array.value_push_back(array_size);
+
+        // TODO: initialization at resizing might be cheaper
+        for (auto i = 0u; i < mesh_size; i++) {
+            meshes[i].arrays_size[array_size] = 0;
+            meshes[i].arrays_capacity[array_size] = 0;
+        }
+
+        return array_size++;
     }
 
-    void mesh::set_vertex_position(unsigned int vertex, vec3 position) {
-        vertex_positions[vertex] = position;
+    unsigned mesh_format::add_float_attribute(unsigned array, unsigned size) {
+        if (float_attribute_size == float_attribute_capacity) {
+            float_attribute_capacity =
+                std::max(float_attribute_capacity * 2, 1u);
+            resize(
+                float_attributes.name,
+                float_attribute_size, float_attribute_capacity
+            );
+            resize(float_attributes.size, float_attribute_capacity);
 
-        mapping_for_each(vertex_face_vertices, vertex, [=](unsigned int face){
-            face_vertex_positions[face] = position;
-        });
+            resize(float_attributes.array.value, float_attribute_capacity);
+            resize(float_attributes.array.next, float_attribute_capacity);
+            resize(float_attributes.array.previous, float_attribute_capacity);
 
-        mapping_for_each(vertex_edge_vertices, vertex, [=](unsigned int edge){
-            edge_vertex_positions[edge] = position;
-        });
+            resize(
+                float_copy_dependencies.reference.size, float_attribute_capacity
+            );
+            resize(
+                float_copy_dependencies.reference.first,
+                float_attribute_capacity
+            );
+
+            for (auto i = 0u; i < mesh_size; i++) {
+                resize(meshes[i].floats, float_attribute_capacity);
+            }
+        }
+
+        float_attributes.name[float_attribute_size] = "new float attribute";
+        float_attributes.size[float_attribute_size] = size;
+
+        float_attributes.array.push_back(float_attribute_size, array);
+
+        float_copy_dependencies.reference.value_push_back(float_attribute_size);
+
+        for (auto i = 0u; i < mesh_size; i++) {
+            meshes[i].floats[float_attribute_size] = nullptr;
+        }
+
+        return float_attribute_size++;
+    }
+
+    unsigned mesh_format::add_reference_attribute(
+        unsigned array, unsigned target
+    ) {
+        if (reference_attribute_size == reference_attribute_capacity) {
+            reference_attribute_capacity =
+                std::max(reference_attribute_capacity * 2, 1u);
+            resize(
+                reference_attributes.name,
+                reference_attribute_size, reference_attribute_capacity
+            );
+
+            resize(
+                reference_attributes.array.value, reference_attribute_capacity
+            );
+            resize(
+                reference_attributes.array.next, reference_attribute_capacity
+            );
+            resize(
+                reference_attributes.array.previous,
+                reference_attribute_capacity
+            );
+
+            resize(
+                reference_attributes.target_array.value,
+                reference_attribute_capacity
+            );
+            resize(
+                reference_attributes.target_array.next,
+                reference_attribute_capacity
+            );
+            resize(
+                reference_attributes.target_array.previous,
+                reference_attribute_capacity
+            );
+
+            for (auto i = 0u; i < mesh_size; i++) {
+                resize(meshes[i].references, reference_attribute_capacity);
+            }
+        }
+
+        reference_attributes.name[reference_attribute_size] =
+            "new reference attribute";
+        reference_attributes.array.push_back(reference_attribute_size, array);
+        reference_attributes.target_array.push_back(
+            reference_attribute_size, target
+        );
+
+        for (auto i = 0u; i < mesh_size; i++) {
+            meshes[i].references[reference_attribute_size] = map();
+        }
+
+        return reference_attribute_size++;
+    }
+
+    unsigned mesh_format::add_float_copy_attribute(
+        unsigned array, unsigned reference_attribute, unsigned float_attribute
+    ) {
+        // TODO
+    }
+
+    unsigned mesh_format::add_mesh() {
+        if (mesh_size == mesh_capacity) {
+            mesh_capacity = std::max(mesh_capacity * 2, 1u);
+            resize(meshes, mesh_capacity);
+        }
+
+        auto &m = meshes[mesh_size];
+        m = mesh();
+
+        resize(m.arrays_size, array_capacity);
+        resize(m.arrays_capacity, array_capacity);
+        for (auto i = 0u; i < array_size; i++) {
+            m.arrays_size[i] = 0;
+            m.arrays_capacity[i] = 0;
+        }
+
+        resize(m.floats, float_attribute_capacity);
+        for (auto i = 0u; i < float_attribute_size; i++) {
+            m.floats[i] = nullptr;
+        }
+
+        resize(m.references, reference_attribute_capacity);
+        for (auto i = 0u; i < reference_attribute_size; i++) {
+            m.references[i] = map();
+        }
+
+        return mesh_size++;
     }
 }

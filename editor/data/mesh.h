@@ -1,50 +1,89 @@
 #pragma once
 
+#include <string>
 #include <vector>
-#include <set>
-#include <unordered_set>
+#include <array>
+#include <fast/collections/span.h>
 
-#include <glm/glm.hpp>
-
-#include "vertex_array.h"
-#include "buffer_vector.h"
+#include "editor/algorithm/map.h"
 
 namespace ge1 {
 
-    struct mesh {
-        mesh() = default;
+    struct mesh_format {
+        struct attributes {
+            std::string *name = nullptr;
 
-        bool pick_vertex(glm::mat4 matrix, glm::vec2 ndc, unsigned int& vertex);
+            map array;
+        };
 
-        void resize_vertex_buffer(unsigned int size);
+        // TODO: support structs
+        // one of the arrays is used for instance attributes
+        struct scalar_attributes : attributes {
+            unsigned *size = nullptr;
+        } float_attributes;
 
-        void add_vertex(glm::vec3 position);
-        void add_edge(std::array<unsigned int, 2> vertex);
-        void add_face(std::array<unsigned int, 3> vertex);
+        struct reference_attributes : attributes {
+            map target_array;
+        } reference_attributes;
 
-        void delete_face(unsigned int face);
-        void delete_edge(unsigned int edge);
-        void delete_vertex(unsigned int vertex);
+        struct copy_dependencies : attributes {
+            map reference;
+            unsigned *attribute = nullptr;
+        } float_copy_dependencies;
 
-        void set_vertex_selection(unsigned int vertex, bool selected);
-        void set_vertex_position(unsigned int vertex, glm::vec3 position);
+        // TODO: maybe rename this to arrays
+        struct vertex_arrays {
+            std::string *name = nullptr;
+            unsigned *patch_size = nullptr;
+        } vertex_arrays;
 
-        buffer_vector<glm::vec3> vertex_positions;
-        buffer_vector<unsigned char> vertex_selections;
+        struct mesh {
+            std::string *names = nullptr;
+            unsigned *arrays_size = nullptr;
+            unsigned *arrays_capacity = nullptr;
 
-        buffer_vector<glm::vec3> face_vertex_positions;
-        std::vector<unsigned int> face_vertices;
+            float **floats = nullptr;
+            float **float_copies = nullptr;
 
-        buffer_vector<glm::vec3> edge_vertex_positions;
-        std::vector<unsigned int> edge_vertices;
+            map *references = nullptr;
+        } *meshes = nullptr;
 
-        std::set<std::pair<unsigned int, unsigned int>> vertex_face_vertices;
-        std::set<std::pair<unsigned int, unsigned int>> vertex_edge_vertices;
-        std::unordered_set<unsigned int> selected_vertices;
+        std::string name;
 
-        // don't share buffers between meshes for now
-        unique_vertex_array vertex_array;
-        unique_vertex_array edge_vertex_array;
-        unique_vertex_array face_vertex_array;
+        unsigned mesh_size = 0, mesh_capacity = 0;
+        unsigned float_attribute_size = 0, float_attribute_capacity = 0;
+        unsigned reference_attribute_size = 0, reference_attribute_capacity = 0;
+        unsigned array_size = 0, array_capacity = 0;
+
+        // TODO: maybe not use spans
+        void set_reference_values(
+            unsigned mesh, unsigned attribute,
+            unsigned first, fast::span<const unsigned> values
+        );
+
+        void set_float_values(
+            unsigned mesh, unsigned attribute,
+            unsigned first, fast::span<const float> values
+        );
+
+        unsigned add_patches(
+            unsigned mesh, unsigned array,
+            unsigned **references, unsigned count
+        );
+
+        unsigned remove_patch(unsigned mesh, unsigned array, unsigned patch);
+
+        unsigned add_array(unsigned patch_size);
+
+        unsigned add_float_attribute(unsigned array, unsigned size);
+
+        unsigned add_reference_attribute(unsigned array, unsigned target);
+
+        unsigned add_float_copy_attribute(
+            unsigned array, unsigned reference_attribute,
+            unsigned float_attribute
+        );
+
+        unsigned add_mesh();
     };
 }

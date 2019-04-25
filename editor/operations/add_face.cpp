@@ -5,7 +5,7 @@ using namespace glm;
 namespace ge1 {
 
     operation::status add_face::trigger(context& c, double, double) {
-        auto& m = c.current_object->m;
+        /*auto& m = c.current_object->m;
 
         if (m->selected_vertices.size() == 3) {
             // TODO: update all objects using this mesh
@@ -31,7 +31,7 @@ namespace ge1 {
             m->add_edge(vertices);
         }
 
-        c.current_object->edge_call.count = m->edge_vertices.size();
+        c.current_object->edge_call.count = m->edge_vertices.size();*/
 
         return status::finished;
     }

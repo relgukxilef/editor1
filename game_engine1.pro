@@ -25,7 +25,9 @@ SOURCES += \
     editor/operations/select_vertex.cpp \
     editor/operations/add_face.cpp \
     editor/operations/delete_vertices.cpp \
-    editor/operations/rotate_view.cpp
+    editor/operations/rotate_view.cpp \
+    editor/algorithm/allocator.cpp \
+    editor/algorithm/reference.cpp
 
 HEADERS += \
     pass.h \
@@ -53,7 +55,12 @@ HEADERS += \
     buffer_vector.h \
     editor/operations/delete_vertices.h \
     editor/algorithm/mapping.h \
-    editor/operations/rotate_view.h
+    editor/operations/rotate_view.h \
+    editor/algorithm/allocator.h \
+    editor/data/mesh_format.h \
+    editor/algorithm/reference.h \
+    editor/algorithm/linked_list.h \
+    editor/algorithm/map.h
 
 DISTFILES += \
     shaders/solid.fs \

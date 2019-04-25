@@ -3,7 +3,7 @@
 namespace ge1 {
 
     operation::status delete_vertices::trigger(context& c, double x, double y) {
-        auto& m = c.current_object->m;
+        /*auto& m = c.current_object->m;
 
         // delete all faces adjacent to this vertex
         auto vertex = m->selected_vertices.begin();
@@ -16,7 +16,7 @@ namespace ge1 {
             vertex = m->selected_vertices.begin();
         }
 
-        c.current_object->edge_call.count = m->edge_vertices.size();
+        c.current_object->edge_call.count = m->edge_vertices.size();*/
 
         return status::finished;
     }

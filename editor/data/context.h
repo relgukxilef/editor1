@@ -3,6 +3,8 @@
 #include "view.h"
 #include "object.h"
 
+#include <memory>
+
 namespace ge1 {
 
     struct context {
@@ -11,5 +13,7 @@ namespace ge1 {
         view* current_view = nullptr;
         object* current_object = nullptr;
         unsigned int width, height;
+
+
     };
 }
