@@ -1,35 +1,8 @@
 #include "mesh.h"
 
-#include <cassert>
-#include <cstdlib>
+#include "editor/algorithm/array.h"
 
 namespace ge1 {
-
-    template<class Type>
-    void resize(Type *&array, unsigned new_size) {
-        static_assert(
-            std::is_trivially_copyable<Type>::value,
-            "'array' must be trivially copyable!"
-        );
-
-        void *new_array = std::realloc(array, new_size * sizeof(Type));
-        if (new_array) {
-            array = reinterpret_cast<Type*>(new_array);
-        } else {
-            throw std::bad_alloc();
-        }
-    }
-
-    template<class Type>
-    void resize(Type *&array, unsigned size, unsigned new_size) {
-        // TODO: use std::aligned_storage
-        Type *new_array = new Type[new_size];
-        for (auto i = 0u; i < size; i++) {
-            new_array[i] = std::move(array[i]);
-        }
-        delete[] array;
-        array = new_array;
-    }
 
     void mesh_format::set_reference_values(
         unsigned mesh, unsigned attribute,
@@ -95,16 +68,13 @@ namespace ge1 {
             }
 
             for (auto attribute : reference_attributes.array.keys(array)) {
-                resize(m.references[attribute].value, capacity);
-                resize(m.references[attribute].next, capacity);
-                resize(m.references[attribute].previous, capacity);
+                m.references[attribute].resize(capacity);
             }
 
             for (
                 auto attribute : reference_attributes.target_array.keys(array)
             ) {
-                resize(m.references[attribute].size, capacity);
-                resize(m.references[attribute].first, capacity);
+                m.references[attribute].value_resize(capacity);
             }
 
             m.arrays_capacity[array] = capacity;
@@ -186,12 +156,9 @@ namespace ge1 {
             resize(vertex_arrays.name, array_size, array_capacity);
             resize(vertex_arrays.patch_size, array_capacity);
 
-            resize(float_attributes.array.size, array_capacity);
-            resize(float_attributes.array.first, array_capacity);
-            resize(reference_attributes.array.size, array_capacity);
-            resize(reference_attributes.array.first, array_capacity);
-            resize(reference_attributes.target_array.size, array_capacity);
-            resize(reference_attributes.target_array.first, array_capacity);
+            float_attributes.array.value_resize(array_capacity);
+            reference_attributes.array.value_resize(array_capacity);
+            reference_attributes.target_array.value_resize(array_capacity);
 
             for (auto i = 0u; i < mesh_size; i++) {
                 resize(meshes[i].arrays_size, array_capacity);
@@ -225,15 +192,9 @@ namespace ge1 {
             );
             resize(float_attributes.size, float_attribute_capacity);
 
-            resize(float_attributes.array.value, float_attribute_capacity);
-            resize(float_attributes.array.next, float_attribute_capacity);
-            resize(float_attributes.array.previous, float_attribute_capacity);
+            float_attributes.array.resize(float_attribute_capacity);
 
-            resize(
-                float_copy_dependencies.reference.size, float_attribute_capacity
-            );
-            resize(
-                float_copy_dependencies.reference.first,
+            float_copy_dependencies.reference.value_resize(
                 float_attribute_capacity
             );
 
@@ -267,27 +228,9 @@ namespace ge1 {
                 reference_attribute_size, reference_attribute_capacity
             );
 
-            resize(
-                reference_attributes.array.value, reference_attribute_capacity
-            );
-            resize(
-                reference_attributes.array.next, reference_attribute_capacity
-            );
-            resize(
-                reference_attributes.array.previous,
-                reference_attribute_capacity
-            );
+            reference_attributes.array.resize(reference_attribute_capacity);
 
-            resize(
-                reference_attributes.target_array.value,
-                reference_attribute_capacity
-            );
-            resize(
-                reference_attributes.target_array.next,
-                reference_attribute_capacity
-            );
-            resize(
-                reference_attributes.target_array.previous,
+            reference_attributes.target_array.resize(
                 reference_attribute_capacity
             );
 

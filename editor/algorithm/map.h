@@ -1,17 +1,18 @@
 #pragma once
 
 #include "linked_list.h"
+#include "editor/algorithm/array.h"
 
 namespace ge1 {
     struct map {
         unsigned *value = nullptr, *next = nullptr, *previous = nullptr;
         unsigned *size = nullptr, *first = nullptr;
 
-        linked_list keys(unsigned value) const {
+        inline linked_list keys(unsigned value) const {
             return {first[value], size[value], next, previous};
         }
 
-        void set(unsigned key, unsigned value) {
+        inline void set(unsigned key, unsigned value) {
             // set this->value[key] to value
             unsigned old_value = this->value[key];
             if (old_value != value) {
@@ -68,7 +69,7 @@ namespace ge1 {
             this->previous[new_value_first] = last;
         }
 
-        void pop_back(unsigned key) {
+        inline void pop_back(unsigned key) {
             unsigned value = this->value[key];
             this->size[value]--;
             unsigned next = this->next[key];
@@ -86,7 +87,7 @@ namespace ge1 {
             }
         }
 
-        void push_back(unsigned key, unsigned value) {
+        inline void push_back(unsigned key, unsigned value) {
             unsigned first = this->first[value];
             this->size[value]++;
             this->value[key] = value;
@@ -99,9 +100,20 @@ namespace ge1 {
             this->first[value] = key;
         }
 
-        void value_push_back(unsigned value) {
+        inline void value_push_back(unsigned value) {
             size[value] = 0;
             first[value] = static_cast<unsigned>(-1);
+        }
+
+        inline void resize(unsigned new_size) {
+            ge1::resize(value, new_size);
+            ge1::resize(next, new_size);
+            ge1::resize(previous, new_size);
+        }
+
+        inline void value_resize(unsigned new_size) {
+            ge1::resize(size, new_size);
+            ge1::resize(first, new_size);
         }
     };
 }

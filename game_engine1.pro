@@ -9,7 +9,7 @@ DEFINES += GLEW_STATIC
 LIBS += -lglfw3dll -lglew32s -lopengl32
 
 SOURCES += \
-	main.cpp \
+    main.cpp \
     pass.cpp \
     composition.cpp \
     program.cpp \
@@ -38,7 +38,7 @@ HEADERS += \
     resources.h \
     vertex_attribute_struct.h \
     draw_call.h \
-	typed/interfaces.h \
+    typed/interfaces.h \
     typed/primitive_types.h \
     typed/glm_types.h \
     span.h \
@@ -60,7 +60,8 @@ HEADERS += \
     editor/data/mesh_format.h \
     editor/algorithm/reference.h \
     editor/algorithm/linked_list.h \
-    editor/algorithm/map.h
+    editor/algorithm/map.h \
+    editor/algorithm/array.h
 
 DISTFILES += \
     shaders/solid.fs \
