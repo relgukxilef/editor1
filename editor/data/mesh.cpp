@@ -1,15 +1,27 @@
 #include "mesh.h"
 
+#include <algorithm>
+
 #include "editor/algorithm/array.h"
+#include "span.h"
 
 namespace ge1 {
 
     void mesh_format::set_reference_values(
         unsigned mesh, unsigned attribute,
-        unsigned first, fast::span<const unsigned> values
+        unsigned first, const unsigned *values, unsigned count
     ) {
-        auto reference = meshes[mesh].references[attribute];
-        for (auto value : values) {
+        assert(meshes);
+        auto m = meshes[mesh];
+        assert(m.references);
+        auto reference = m.references[attribute];
+        auto array = float_attributes.array.value[attribute];
+        assert(
+            m.arrays_size[array] * vertex_arrays.patch_size[array] >=
+            first + count
+        );
+
+        for (auto value : span<const unsigned>(values, values + count)) {
             reference.set(first, value);
             // TODO: update copies
             first++;
@@ -18,16 +30,26 @@ namespace ge1 {
 
     void mesh_format::set_float_values(
         unsigned mesh, unsigned attribute,
-        unsigned first, fast::span<const float> values
+        unsigned first, const float *values, unsigned vertex_count
     ) {
-        auto m = meshes[mesh];
-        const auto floats = m.floats[attribute];
+        // first is a vertex index
+        // values must be array of vertex_count * size
 
-        auto vertex = first;
-        for (auto value : values) {
-            floats[vertex] = value;
-            vertex++;
-        }
+        assert(meshes);
+        auto m = meshes[mesh];
+        assert(m.floats);
+        const auto floats = m.floats[attribute];
+        assert(floats);
+        auto size = float_attributes.size[attribute];
+        auto array = float_attributes.array.value[attribute];
+        assert(
+            m.arrays_size[array] * vertex_arrays.patch_size[array] >=
+            first + vertex_count
+        );
+
+        auto values_end = values + vertex_count * size;
+        auto floats_begin = floats + first * size;
+        std::move(values, values_end, floats_begin);
 
         // for each dependent copy attribute
         for (
@@ -37,16 +59,22 @@ namespace ge1 {
             const auto reference_attribute =
                 float_copy_dependencies.reference.value[copy_attribute];
             const auto copies = m.float_copies[copy_attribute];
-            vertex = first;
-            for (auto value : values) {
+            for (
+                auto vertex = first;
+                vertex < first + vertex_count;
+                vertex++
+            ) {
                 // determine dependent vertices
+                // TODO: use scatter
                 for (
                     auto copy_vertex :
                     meshes[mesh].references[reference_attribute].keys(vertex)
                 ) {
-                    copies[copy_vertex] = value;
+                    for (auto i = 0u; i < size; i++) {
+                        copies[copy_vertex * size + i] =
+                            values[vertex * size + i];
+                    }
                 }
-                vertex++;
             }
         }
     }
@@ -64,7 +92,10 @@ namespace ge1 {
             capacity = std::max(capacity * 2, capacity + count * patch_size);
 
             for (auto attribute : float_attributes.array.keys(array)) {
-                resize(m.floats[attribute], capacity);
+                resize(
+                    m.floats[attribute],
+                    capacity * float_attributes.size[attribute]
+                );
             }
 
             for (auto attribute : reference_attributes.array.keys(array)) {
@@ -92,6 +123,12 @@ namespace ge1 {
         ) {
             auto reference = m.references[reference_attribute];
             for (auto i = 0u; i < count * patch_size; i++) {
+                assert(
+                    (*references)[i] <
+                    m.arrays_size[reference_attributes.target_array.value[
+                        reference_attribute
+                    ]]
+                );
                 reference.push_back(size + i, (*references)[i]);
                 // TODO: update copies
             }
@@ -151,6 +188,7 @@ namespace ge1 {
     }
 
     unsigned mesh_format::add_array(unsigned patch_size) {
+        // TODO: reduce code dublication
         if (array_size == array_capacity) {
             array_capacity = std::max(array_capacity * 2, 1u);
             resize(vertex_arrays.name, array_size, array_capacity);
@@ -183,6 +221,8 @@ namespace ge1 {
     }
 
     unsigned mesh_format::add_float_attribute(unsigned array, unsigned size) {
+        assert(array < array_size);
+
         if (float_attribute_size == float_attribute_capacity) {
             float_attribute_capacity =
                 std::max(float_attribute_capacity * 2, 1u);
@@ -220,6 +260,9 @@ namespace ge1 {
     unsigned mesh_format::add_reference_attribute(
         unsigned array, unsigned target
     ) {
+        assert(array < array_size);
+        assert(target < array_size);
+
         if (reference_attribute_size == reference_attribute_capacity) {
             reference_attribute_capacity =
                 std::max(reference_attribute_capacity * 2, 1u);

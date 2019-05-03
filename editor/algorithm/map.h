@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cassert>
+
 #include "linked_list.h"
 #include "editor/algorithm/array.h"
 
@@ -32,6 +34,8 @@ namespace ge1 {
                     // index.previous <- index.next
                     this->previous[next] = previous;
                 }
+                assert(this->size[old_value] > 0);
+                this->size[old_value]--;
 
                 // add new reference
                 this->value[key] = value;
@@ -41,6 +45,7 @@ namespace ge1 {
                 }
                 this->next[key] = first;
                 this->first[value] = key;
+                this->size[value]++;
             }
         }
 
@@ -88,16 +93,19 @@ namespace ge1 {
         }
 
         inline void push_back(unsigned key, unsigned value) {
-            unsigned first = this->first[value];
-            this->size[value]++;
-            this->value[key] = value;
             // list -> key <-> first
-            this->previous[key] = static_cast<unsigned>(-1);
-            if (first != static_cast<unsigned>(-1)) {
+            auto first = this->first[value];
+            auto old_size = this->size[value];
+            if (old_size != 0) {
+                assert(first != static_cast<unsigned>(-1));
                 this->previous[first] = key;
             }
+
+            this->value[key] = value;
+            this->previous[key] = static_cast<unsigned>(-1);
             this->next[key] = first;
             this->first[value] = key;
+            this->size[value] = old_size + 1;
         }
 
         inline void value_push_back(unsigned value) {

@@ -278,10 +278,11 @@ int main() {
 
     // add a vertex
     solid.add_patches(rectangle_mesh, vertex_array, nullptr, 4);
+    float positions[] = {
+        -1.f, -1.f, 0.f, 1.f, -1.f, 0.f, -1.f, 1.f, 0.f, 1.f, 1.f, 0.f
+    };
     solid.set_float_values(
-        rectangle_mesh, position_attribute, 0, {
-            -1.f, -1.f, 0.f, 1.f, -1.f, 0.f, -1.f, 1.f, 0.f, 1.f, 1.f, 0.f
-        }
+        rectangle_mesh, position_attribute, 0, positions, 4
     );
     unsigned references[] {0, 1, 2, 2, 1, 3};
     unsigned *reference_attributes = references;

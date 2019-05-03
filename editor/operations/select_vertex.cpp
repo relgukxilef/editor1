@@ -1,7 +1,5 @@
 #include "select_vertex.h"
 
-#include "editor/algorithm/selection.h"
-
 using namespace glm;
 
 namespace ge1 {

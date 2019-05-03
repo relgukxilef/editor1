@@ -39,7 +39,7 @@ namespace ge1 {
 
         struct mesh {
             std::string *names = nullptr;
-            unsigned *arrays_size = nullptr;
+            unsigned *arrays_size = nullptr; // in patches
             unsigned *arrays_capacity = nullptr;
 
             float **floats = nullptr;
@@ -56,14 +56,13 @@ namespace ge1 {
         unsigned array_size = 0, array_capacity = 0;
 
         // TODO: maybe not use spans
-        void set_reference_values(
-            unsigned mesh, unsigned attribute,
-            unsigned first, fast::span<const unsigned> values
-        );
+        void set_reference_values(unsigned mesh, unsigned attribute,
+            unsigned first, const unsigned* values
+        , unsigned count);
 
         void set_float_values(
             unsigned mesh, unsigned attribute,
-            unsigned first, fast::span<const float> values
+            unsigned first, const float* values, unsigned vertex_count
         );
 
         unsigned add_patches(
