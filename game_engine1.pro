@@ -6,7 +6,12 @@ CONFIG += object_parallel_to_source
 
 DEFINES += GLEW_STATIC
 
-LIBS += -lglfw3dll -lglew32s -lopengl32
+win32: LIBS += -lglfw3dll -lglew32s -lopengl32
+
+unix: CONFIG += link_pkgconfig
+unix: PKGCONFIG += glfw3
+unix: PKGCONFIG += glew
+unix: PKGCONFIG += gl
 
 SOURCES += \
     main.cpp \

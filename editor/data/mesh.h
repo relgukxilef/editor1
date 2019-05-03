@@ -3,7 +3,6 @@
 #include <string>
 #include <vector>
 #include <array>
-#include <fast/collections/span.h>
 
 #include "editor/algorithm/map.h"
 

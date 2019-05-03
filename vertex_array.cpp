@@ -7,7 +7,7 @@ namespace ge1 {
         GLuint element_array_buffer, GLuint draw_indirect_buffer
     ) {
         GLuint name;
-        glCreateVertexArrays(1, &name);
+        glGenVertexArrays(1, &name);
         glBindVertexArray(name);
 
         for (auto attribute : attributes) {
@@ -36,11 +36,11 @@ namespace ge1 {
         GLenum draw_indirect_usage
     ) {
         GLuint name;
-        glCreateVertexArrays(1, &name);
+        glGenVertexArrays(1, &name);
         glBindVertexArray(name);
 
         for (auto attribute_pack : attribute_packs) {
-            glCreateBuffers(1, attribute_pack.vertex_buffer);
+            glGenBuffers(1, attribute_pack.vertex_buffer);
             glBindBuffer(GL_ARRAY_BUFFER, *attribute_pack.vertex_buffer);
             if (vertex_capacity > 0) {
                 glBufferData(
@@ -60,7 +60,7 @@ namespace ge1 {
         }
 
         if (draw_indirect_buffer != nullptr) {
-            glCreateBuffers(1, draw_indirect_buffer);
+            glGenBuffers(1, draw_indirect_buffer);
             glBindBuffer(GL_DRAW_INDIRECT_BUFFER, *draw_indirect_buffer);
             glBufferData(
                 GL_ARRAY_BUFFER, draw_indirect_capacity * 4 * 4,
@@ -78,7 +78,7 @@ namespace ge1 {
         GLenum draw_indirect_usage
     ) {
         GLuint name;
-        glCreateVertexArrays(1, &name);
+        glGenVertexArrays(1, &name);
         glBindVertexArray(name);
 
         GLuint vertex_capacity = 0, instance_capacity = 0;
@@ -95,7 +95,7 @@ namespace ge1 {
         }
 
         for (auto attribute_pack : vertex_attribute_packs) {
-            glCreateBuffers(1, attribute_pack.vertex_buffer);
+            glGenBuffers(1, attribute_pack.vertex_buffer);
             glBindBuffer(GL_ARRAY_BUFFER, *attribute_pack.vertex_buffer);
             glBufferData(
                 GL_ARRAY_BUFFER, vertex_capacity * attribute_pack.stride,
@@ -113,7 +113,7 @@ namespace ge1 {
         }
 
         for (auto attribute_pack : instance_attribute_packs) {
-            glCreateBuffers(1, attribute_pack.vertex_buffer);
+            glGenBuffers(1, attribute_pack.vertex_buffer);
             glBindBuffer(GL_ARRAY_BUFFER, *attribute_pack.vertex_buffer);
             glBufferData(
                 GL_ARRAY_BUFFER, instance_capacity * attribute_pack.stride,
@@ -132,7 +132,7 @@ namespace ge1 {
         }
 
         if (draw_indirect_buffer != nullptr) {
-            glCreateBuffers(1, draw_indirect_buffer);
+            glGenBuffers(1, draw_indirect_buffer);
             glBindBuffer(GL_DRAW_INDIRECT_BUFFER, *draw_indirect_buffer);
             glBufferData(
                 GL_DRAW_INDIRECT_BUFFER, commands.size() * 4 * sizeof(GLuint),
