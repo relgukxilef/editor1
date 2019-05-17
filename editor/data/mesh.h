@@ -18,6 +18,7 @@ namespace ge1 {
         // TODO: support structs
         // one of the arrays is used for instance attributes
         struct scalar_attributes : attributes {
+            // TODO: rename to element_size
             unsigned *size = nullptr;
         } float_attributes;
 
@@ -27,8 +28,8 @@ namespace ge1 {
 
         struct copy_dependencies : attributes {
             map reference;
-            unsigned *attribute = nullptr;
-        } float_copy_dependencies;
+            map attribute;
+        } float_copy_attributes;
 
         // TODO: maybe rename this to arrays
         struct vertex_arrays {
@@ -37,10 +38,11 @@ namespace ge1 {
         } vertex_arrays;
 
         struct mesh {
-            std::string *names = nullptr;
+            std::string name;
             unsigned *arrays_size = nullptr; // in patches
             unsigned *arrays_capacity = nullptr;
 
+            // floats[float_attribute_size][arrays_size[array]]
             float **floats = nullptr;
             float **float_copies = nullptr;
 
@@ -50,30 +52,29 @@ namespace ge1 {
         std::string name;
 
         unsigned mesh_size = 0, mesh_capacity = 0;
+        unsigned array_size = 0, array_capacity = 0;
         unsigned float_attribute_size = 0, float_attribute_capacity = 0;
         unsigned reference_attribute_size = 0, reference_attribute_capacity = 0;
-        unsigned array_size = 0, array_capacity = 0;
+        unsigned float_copy_attribute_size = 0;
+        unsigned float_copy_attribute_capacity = 0;
 
-        // TODO: maybe not use spans
-        void set_reference_values(unsigned mesh, unsigned attribute,
-            unsigned first, const unsigned* values
-        , unsigned count);
+        void set_reference_values(
+            unsigned mesh, unsigned attribute,
+            unsigned first, const unsigned* values, unsigned count
+        );
 
         void set_float_values(
             unsigned mesh, unsigned attribute,
             unsigned first, const float* values, unsigned vertex_count
         );
 
-        unsigned add_patches(
-            unsigned mesh, unsigned array,
-            unsigned **references, unsigned count
-        );
+        unsigned add_patches(unsigned mesh, unsigned array, unsigned count);
 
         unsigned remove_patch(unsigned mesh, unsigned array, unsigned patch);
 
         unsigned add_array(unsigned patch_size);
 
-        unsigned add_float_attribute(unsigned array, unsigned size);
+        unsigned add_float_attribute(unsigned array, unsigned element_size);
 
         unsigned add_reference_attribute(unsigned array, unsigned target);
 

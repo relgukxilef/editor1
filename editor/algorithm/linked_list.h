@@ -5,7 +5,7 @@
 namespace ge1 {
 
     struct linked_list {
-        unsigned& first, & size;
+        unsigned first, size;
         unsigned* next, * previous;
 
         struct iterator {
@@ -33,31 +33,6 @@ namespace ge1 {
         }
         iterator end() const {
             return {size, size, first, next};
-        }
-
-        void insert(unsigned index) {
-            // list -> index <-> first
-            previous[first] = index;
-            next[index] = first;
-            first = index;
-            size++;
-        }
-
-        void remove(unsigned index) {
-            unsigned next = this->next[index];
-            unsigned previous = this->previous[index];
-            if (previous != static_cast<unsigned>(-1)) {
-                // index.previous -> index.next
-                this->next[previous] = next;
-            } else {
-                // list -> index.next
-                this->first = next;
-            }
-            if (next != static_cast<unsigned>(-1)) {
-                // a.previous <- a.next
-                this->previous[next] = previous;
-            }
-            size--;
         }
     };
 }

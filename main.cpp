@@ -266,27 +266,29 @@ int main() {
         face_array, vertex_array
     );
     // vertex positions and normals are copied to faces
-    /*auto face_position_attribut = add_vertex_float_copy_dependency(
-        solid_format, face_array, face_vertex_attribute, position_attribute
+    auto face_position_attribute = solid.add_float_copy_attribute(
+        face_array, face_vertex_attribute, position_attribute
     );
-    auto face_normal_attribut = add_vertex_float_copy_dependency(
-        solid_format, face_array, face_vertex_attribute, normal_attribute
-    );*/
+    auto face_normal_attribute = solid.add_float_copy_attribute(
+        face_array, face_vertex_attribute, normal_attribute
+    );
 
     // add a mesh
     auto rectangle_mesh = solid.add_mesh();
 
     // add a vertex
-    solid.add_patches(rectangle_mesh, vertex_array, nullptr, 4);
+    solid.add_patches(rectangle_mesh, vertex_array, 4);
     float positions[] = {
         -1.f, -1.f, 0.f, 1.f, -1.f, 0.f, -1.f, 1.f, 0.f, 1.f, 1.f, 0.f
     };
     solid.set_float_values(
         rectangle_mesh, position_attribute, 0, positions, 4
     );
+    solid.add_patches(rectangle_mesh, face_array, 2);
     unsigned references[] {0, 1, 2, 2, 1, 3};
-    unsigned *reference_attributes = references;
-    solid.add_patches(rectangle_mesh, face_array, &reference_attributes, 2);
+    solid.set_reference_values(
+        rectangle_mesh, face_vertex_attribute, 0, references, 6
+    );
 
     unique_shader fragment_utils = compile_shader(
         GL_FRAGMENT_SHADER, "shaders/utils.fs"

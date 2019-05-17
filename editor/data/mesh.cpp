@@ -15,16 +15,31 @@ namespace ge1 {
         auto m = meshes[mesh];
         assert(m.references);
         auto reference = m.references[attribute];
-        auto array = float_attributes.array.value[attribute];
+        auto array = reference_attributes.array.value[attribute];
         assert(
             m.arrays_size[array] * vertex_arrays.patch_size[array] >=
             first + count
         );
 
+        auto vertex = first;
         for (auto value : span<const unsigned>(values, values + count)) {
-            reference.set(first, value);
-            // TODO: update copies
-            first++;
+            reference.set(vertex, value);
+            vertex++;
+        }
+
+        // for each copy attribute
+        for (
+            auto float_copy_attribute :
+            float_copy_attributes.reference.keys(attribute)
+        ) {
+            auto float_attribute =
+                float_copy_attributes.attribute.value[float_copy_attribute];
+            auto vertex = first;
+            for (auto value : span<const unsigned>(values, values + count)) {
+                m.float_copies[float_copy_attribute][vertex] =
+                    m.floats[float_attribute][value];
+                vertex++;
+            }
         }
     }
 
@@ -53,12 +68,12 @@ namespace ge1 {
 
         // for each dependent copy attribute
         for (
-            auto copy_attribute :
-            float_copy_dependencies.reference.keys(attribute)
+            auto float_copy_attribute :
+            float_copy_attributes.attribute.keys(attribute)
         ) {
             const auto reference_attribute =
-                float_copy_dependencies.reference.value[copy_attribute];
-            const auto copies = m.float_copies[copy_attribute];
+                float_copy_attributes.reference.value[float_copy_attribute];
+            const auto copies = m.float_copies[float_copy_attribute];
             for (
                 auto vertex = first;
                 vertex < first + vertex_count;
@@ -80,68 +95,64 @@ namespace ge1 {
     }
 
     unsigned mesh_format::add_patches(
-        unsigned mesh, unsigned array,
-        unsigned** references, unsigned count
+        unsigned mesh, unsigned array, unsigned count
     ) {
         auto m = meshes[mesh];
 
         auto size = m.arrays_size[array];
+        m.arrays_size[array] = size + count;
         auto capacity = m.arrays_capacity[array];
+        auto new_capacity = push_back_capacity(size, capacity, count);
+        m.arrays_capacity[array] = new_capacity;
+
         auto patch_size = vertex_arrays.patch_size[array];
-        if (size + count * patch_size > capacity) {
-            capacity = std::max(capacity * 2, capacity + count * patch_size);
-
-            for (auto attribute : float_attributes.array.keys(array)) {
-                resize(
-                    m.floats[attribute],
-                    capacity * float_attributes.size[attribute]
-                );
-            }
-
-            for (auto attribute : reference_attributes.array.keys(array)) {
-                m.references[attribute].resize(capacity);
-            }
-
-            for (
-                auto attribute : reference_attributes.target_array.keys(array)
-            ) {
-                m.references[attribute].value_resize(capacity);
-            }
-
-            m.arrays_capacity[array] = capacity;
-        }
 
         for (auto attribute : float_attributes.array.keys(array)) {
-            auto f = m.floats[attribute];
-            for (auto i = 0u; i < count * patch_size; i++) {
-                f[size + i] = 0;
-            }
+            auto attribute_size = float_attributes.size[attribute];
+            push_back(
+                m.floats[attribute],
+                size * patch_size * attribute_size,
+                capacity * patch_size * attribute_size,
+                new_capacity * patch_size * attribute_size,
+                count * patch_size * attribute_size,
+                0
+            );
+        }
+
+        for (auto attribute : float_copy_attributes.array.keys(array)) {
+            auto float_attribute =
+                float_copy_attributes.attribute.value[attribute];
+            auto attribute_size = float_attributes.size[float_attribute];
+            push_back(
+                m.float_copies[attribute],
+                size * patch_size * attribute_size,
+                capacity * patch_size * attribute_size,
+                new_capacity * patch_size * attribute_size,
+                count * patch_size * attribute_size,
+                0
+            );
+        }
+
+        for (auto attribute : reference_attributes.array.keys(array)) {
+            m.references[attribute].push_back(
+                size * patch_size,
+                capacity * patch_size,
+                new_capacity * patch_size,
+                count * patch_size
+            );
         }
 
         for (
-            auto reference_attribute : reference_attributes.array.keys(array)
+            auto attribute : reference_attributes.target_array.keys(array)
         ) {
-            auto reference = m.references[reference_attribute];
-            for (auto i = 0u; i < count * patch_size; i++) {
-                assert(
-                    (*references)[i] <
-                    m.arrays_size[reference_attributes.target_array.value[
-                        reference_attribute
-                    ]]
-                );
-                reference.push_back(size + i, (*references)[i]);
-                // TODO: update copies
-            }
-            references++;
+            m.references[attribute].value_push_back(
+                size * patch_size,
+                capacity * patch_size,
+                new_capacity * patch_size,
+                count * patch_size
+            );
         }
 
-        for (auto attribute : reference_attributes.target_array.keys(array)) {
-            for (auto i = 0u; i < count * patch_size; i++) {
-                m.references[attribute].value_push_back(size + i);
-            }
-        }
-
-        m.arrays_size[array] = size + count * patch_size;
         return size;
     }
 
@@ -188,73 +199,83 @@ namespace ge1 {
     }
 
     unsigned mesh_format::add_array(unsigned patch_size) {
-        // TODO: reduce code dublication
-        if (array_size == array_capacity) {
-            array_capacity = std::max(array_capacity * 2, 1u);
-            resize(vertex_arrays.name, array_size, array_capacity);
-            resize(vertex_arrays.patch_size, array_capacity);
+        auto size = array_size;
+        array_size++;
+        auto capacity = array_capacity;
+        auto new_capacity = push_back_capacity(size, capacity, 1);
+        array_capacity = new_capacity;
 
-            float_attributes.array.value_resize(array_capacity);
-            reference_attributes.array.value_resize(array_capacity);
-            reference_attributes.target_array.value_resize(array_capacity);
+        push_back(
+            vertex_arrays.name, size, capacity, new_capacity, 1, "new array"
+        );
+        push_back(
+            vertex_arrays.patch_size, size, capacity, new_capacity,
+            1, patch_size
+        );
 
-            for (auto i = 0u; i < mesh_size; i++) {
-                resize(meshes[i].arrays_size, array_capacity);
-                resize(meshes[i].arrays_capacity, array_capacity);
-            }
-        }
+        float_attributes.array.value_push_back(size, capacity, new_capacity, 1);
+        reference_attributes.array.value_push_back(
+            size, capacity, new_capacity, 1
+        );
+        reference_attributes.target_array.value_push_back(
+            size, capacity, new_capacity, 1
+        );
+        float_copy_attributes.array.value_push_back(
+            size, capacity, new_capacity, 1
+        );
 
-        vertex_arrays.name[array_size] = "new array";
-        vertex_arrays.patch_size[array_size] = patch_size;
-
-        float_attributes.array.value_push_back(array_size);
-        reference_attributes.array.value_push_back(array_size);
-        reference_attributes.target_array.value_push_back(array_size);
-
-        // TODO: initialization at resizing might be cheaper
         for (auto i = 0u; i < mesh_size; i++) {
-            meshes[i].arrays_size[array_size] = 0;
-            meshes[i].arrays_capacity[array_size] = 0;
+            push_back(
+                meshes[i].arrays_size, size, capacity, new_capacity, 1, 0
+            );
+            push_back(
+                meshes[i].arrays_capacity, size, capacity, new_capacity, 1, 0
+            );
         }
 
-        return array_size++;
+        return size;
     }
 
-    unsigned mesh_format::add_float_attribute(unsigned array, unsigned size) {
+    unsigned mesh_format::add_float_attribute(
+        unsigned array, unsigned element_size
+    ) {
         assert(array < array_size);
 
-        if (float_attribute_size == float_attribute_capacity) {
-            float_attribute_capacity =
-                std::max(float_attribute_capacity * 2, 1u);
-            resize(
-                float_attributes.name,
-                float_attribute_size, float_attribute_capacity
-            );
-            resize(float_attributes.size, float_attribute_capacity);
+        auto size = float_attribute_size;
+        float_attribute_size++;
+        auto capacity = float_attribute_capacity;
+        auto new_capacity = push_back_capacity(size, capacity, 1);
+        float_attribute_capacity = new_capacity;
 
-            float_attributes.array.resize(float_attribute_capacity);
+        push_back(
+            float_attributes.name, size, capacity, new_capacity,
+            1, "new float attribute"
+        );
+        push_back(
+            float_attributes.size, size, capacity, new_capacity,
+            1, element_size
+        );
 
-            float_copy_dependencies.reference.value_resize(
-                float_attribute_capacity
-            );
+        float_attributes.array.push_back(
+            size, capacity, new_capacity, 1, array
+        );
 
-            for (auto i = 0u; i < mesh_size; i++) {
-                resize(meshes[i].floats, float_attribute_capacity);
-            }
-        }
-
-        float_attributes.name[float_attribute_size] = "new float attribute";
-        float_attributes.size[float_attribute_size] = size;
-
-        float_attributes.array.push_back(float_attribute_size, array);
-
-        float_copy_dependencies.reference.value_push_back(float_attribute_size);
+        float_copy_attributes.attribute.value_push_back(
+            size, capacity, new_capacity, 1
+        );
 
         for (auto i = 0u; i < mesh_size; i++) {
-            meshes[i].floats[float_attribute_size] = nullptr;
+            auto &m = meshes[i];
+
+            float *new_floats;
+            push_back(
+                new_floats, 0, 0, m.arrays_capacity[array],
+                m.arrays_size[array], 0
+            );
+            push_back(m.floats, size, capacity, new_capacity, 1, new_floats);
         }
 
-        return float_attribute_size++;
+        return size;
     }
 
     unsigned mesh_format::add_reference_attribute(
@@ -263,71 +284,128 @@ namespace ge1 {
         assert(array < array_size);
         assert(target < array_size);
 
-        if (reference_attribute_size == reference_attribute_capacity) {
-            reference_attribute_capacity =
-                std::max(reference_attribute_capacity * 2, 1u);
-            resize(
-                reference_attributes.name,
-                reference_attribute_size, reference_attribute_capacity
-            );
+        auto size = reference_attribute_size;
+        reference_attribute_size++;
+        auto capacity = reference_attribute_capacity;
+        auto new_capacity = push_back_capacity(size, capacity, 1);
+        reference_attribute_capacity = new_capacity;
 
-            reference_attributes.array.resize(reference_attribute_capacity);
+        push_back(
+            reference_attributes.name, size, capacity, new_capacity,
+            1, "new reference attribute"
+        );
 
-            reference_attributes.target_array.resize(
-                reference_attribute_capacity
-            );
+        reference_attributes.array.push_back(
+            size, capacity, new_capacity, 1, array
+        );
 
-            for (auto i = 0u; i < mesh_size; i++) {
-                resize(meshes[i].references, reference_attribute_capacity);
-            }
-        }
-
-        reference_attributes.name[reference_attribute_size] =
-            "new reference attribute";
-        reference_attributes.array.push_back(reference_attribute_size, array);
         reference_attributes.target_array.push_back(
-            reference_attribute_size, target
+            size, capacity, new_capacity, 1, target
+        );
+
+        float_copy_attributes.reference.value_push_back(
+            size, capacity, new_capacity, 1
         );
 
         for (auto i = 0u; i < mesh_size; i++) {
-            meshes[i].references[reference_attribute_size] = map();
+            map new_references;
+            new_references.push_back(
+                0, 0, meshes[i].arrays_capacity[array],
+                meshes[i].arrays_size[array]
+            );
+            new_references.value_push_back(
+                0, 0, meshes[i].arrays_capacity[target],
+                meshes[i].arrays_size[target]
+            );
+            push_back(
+                meshes[i].references, size, capacity, new_capacity,
+                1, new_references
+            );
         }
 
-        return reference_attribute_size++;
+        return size;
     }
 
     unsigned mesh_format::add_float_copy_attribute(
         unsigned array, unsigned reference_attribute, unsigned float_attribute
     ) {
-        // TODO
+        assert(array < array_size);
+        assert(reference_attribute < reference_attribute_size);
+        assert(float_attribute < float_attribute_size);
+        assert(
+            float_attributes.array.value[float_attribute] ==
+            reference_attributes.target_array.value[reference_attribute]
+        );
+        assert(
+            array ==
+            reference_attributes.array.value[reference_attribute]
+        );
+
+        auto size = float_copy_attribute_size;
+        float_copy_attribute_size++;
+        auto capacity = float_copy_attribute_capacity;
+        auto new_capacity = push_back_capacity(size, capacity, 1);
+        float_copy_attribute_capacity = new_capacity;
+
+        push_back(
+            float_copy_attributes.name, size, capacity, new_capacity,
+            1, "new float copy attirbute"
+        );
+
+        float_copy_attributes.array.push_back(
+            size, capacity, new_capacity, 1, array
+        );
+        float_copy_attributes.reference.push_back(
+            size, capacity, new_capacity, 1, reference_attribute
+        );
+        float_copy_attributes.attribute.push_back(
+            size, capacity, new_capacity, 1, float_attribute
+        );
+
+        for (auto i = 0u; i < mesh_size; i++) {
+            float* new_copies;
+            push_back(
+                new_copies, 0, 0, meshes[i].arrays_capacity[array],
+                meshes[i].arrays_size[array], 0
+            );
+            push_back(
+                meshes[i].float_copies, size, capacity, new_capacity,
+                1, new_copies
+            );
+        }
+
+        return size;
     }
 
     unsigned mesh_format::add_mesh() {
-        if (mesh_size == mesh_capacity) {
-            mesh_capacity = std::max(mesh_capacity * 2, 1u);
-            resize(meshes, mesh_capacity);
-        }
+        auto size = mesh_size;
+        mesh_size++;
+        auto capacity = mesh_capacity;
+        auto new_capacity = push_back_capacity(size, capacity, 1);
+        mesh_capacity = new_capacity;
 
-        auto &m = meshes[mesh_size];
-        m = mesh();
+        auto new_mesh = mesh();
 
-        resize(m.arrays_size, array_capacity);
-        resize(m.arrays_capacity, array_capacity);
-        for (auto i = 0u; i < array_size; i++) {
-            m.arrays_size[i] = 0;
-            m.arrays_capacity[i] = 0;
-        }
+        new_mesh.name = "new mesh";
+        push_back(new_mesh.arrays_size, 0, 0, array_capacity, array_size, 0);
+        push_back(
+            new_mesh.arrays_capacity, 0, 0, array_capacity, array_size, 0
+        );
+        push_back(
+            new_mesh.floats, 0, 0, float_attribute_capacity,
+            float_attribute_size, nullptr
+        );
+        push_back(
+            new_mesh.references, 0, 0, reference_attribute_capacity,
+            reference_attribute_size, map()
+        );
+        push_back(
+            new_mesh.float_copies, 0, 0, float_copy_attribute_capacity,
+            float_copy_attribute_size, nullptr
+        );
 
-        resize(m.floats, float_attribute_capacity);
-        for (auto i = 0u; i < float_attribute_size; i++) {
-            m.floats[i] = nullptr;
-        }
+        push_back(meshes, size, capacity, new_capacity, 1, new_mesh);
 
-        resize(m.references, reference_attribute_capacity);
-        for (auto i = 0u; i < reference_attribute_size; i++) {
-            m.references[i] = map();
-        }
-
-        return mesh_size++;
+        return size;
     }
 }

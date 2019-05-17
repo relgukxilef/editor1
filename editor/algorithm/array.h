@@ -5,6 +5,7 @@
 #include <new>
 #include <utility>
 #include <cassert>
+#include <algorithm>
 
 namespace ge1 {
 
@@ -25,42 +26,39 @@ namespace ge1 {
         array = new_array;
     }
 
-    // TODO: always pass the current size
-    template<class Type>
-    void resize(Type *&array, unsigned new_size) {
-        static_assert(
-            std::is_trivially_copyable<Type>::value,
-            "'array' must be trivially copyable!"
-        );
-
-        void *new_array;
-        if (array) {
-            new_array = std::realloc(array, new_size * sizeof(Type));
-        } else {
-            new_array = std::malloc(new_size * sizeof(Type));
-        }
-
-        if (new_array) {
-            array = reinterpret_cast<Type*>(new_array);
-        } else {
-            throw std::bad_alloc();
-        }
-    }
-
     inline void resize(unsigned, unsigned) {}
 
     template<class Type, class... Types>
     void resize(
         unsigned size, unsigned new_size, Type *&array, Types *&...arrays
     ) {
-        // TODO: use std::aligned_storage
-        Type *new_array = new Type[new_size];
-        // TODO: null check
-        for (auto i = 0u; i < size; i++) {
-            new_array[i] = std::move(array[i]);
-        }
-        delete[] array;
-        array = new_array;
+        resize(array, size, new_size);
         resize(size, new_size, arrays...);
+    }
+
+    inline unsigned push_back_capacity(
+        unsigned size, unsigned capacity, unsigned count
+    ) {
+        assert(size <= capacity);
+        if (size + count > capacity) {
+            return std::max(capacity * 2, capacity + count);
+        } else {
+            return capacity;
+        }
+    }
+
+    template<class Type, class Value>
+    void push_back(
+        Type *&array,
+        unsigned size, unsigned old_capacity, unsigned new_capacity,
+        unsigned count, Value value
+    ) {
+        if (old_capacity != new_capacity) {
+            resize(array, old_capacity, new_capacity);
+        }
+
+        for (auto i = 0u; i < count; i++) {
+            array[size + i] = value;
+        }
     }
 }
