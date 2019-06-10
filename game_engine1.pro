@@ -8,27 +8,17 @@ DEFINES += GLEW_STATIC
 
 LIBS += -lglfw3dll -lglew32s -lopengl32
 
+QMAKE_CXXFLAGS += -Wall -Werror
+
+include("game_engine1/ge1.pri")
+
 SOURCES += \
-	main.cpp \
-    pass.cpp \
-    composition.cpp \
-    program.cpp \
-    draw_call.cpp \
-    vertex_array.cpp
+    main.cpp
 
 HEADERS += \
-    pass.h \
-    composition.h \
-    renderable.h \
-    program.h \
-    vertex_array.h \
-    resources.h \
-    vertex_attribute_struct.h \
-    draw_call.h \
 	typed/interfaces.h \
     typed/primitive_types.h \
-    typed/glm_types.h \
-    span.h
+    typed/glm_types.h
 
 DISTFILES += \
     shaders/solid.fs \

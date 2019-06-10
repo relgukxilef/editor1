@@ -5,10 +5,10 @@
 
 #include <glm/glm.hpp>
 
-#include "composition.h"
-#include "resources.h"
-#include "draw_call.h"
-#include "program.h"
+#include "ge1/composition.h"
+#include "ge1/resources.h"
+#include "ge1/draw_call.h"
+#include "ge1/program.h"
 #include "typed/glm_types.h"
 
 using namespace std;
