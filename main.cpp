@@ -20,6 +20,7 @@
 #include "editor/operations/delete_vertices.h"
 #include "editor/operations/rotate_view.h"
 #include "editor/operations/pan_view.h"
+#include "editor/operations/dolly_view.h"
 
 using namespace std;
 using namespace glm;
@@ -50,6 +51,7 @@ static add_face add_face_operation;
 static delete_vertices delete_face_operation;
 static rotate_view rotate_view_operation;
 static pan_view pan_view_operation;
+static dolly_view dolly_view_operation;
 
 void cursor_position_callback(GLFWwindow*, double x, double y) {
     if (current_operation) {
@@ -88,6 +90,8 @@ void mouse_button_callback(
                 current_operation = &rotate_view_operation;
             } else if (button == GLFW_MOUSE_BUTTON_MIDDLE) {
                 current_operation = &pan_view_operation;
+            } else if (button == GLFW_MOUSE_BUTTON_RIGHT) {
+                current_operation = &dolly_view_operation;
             }
         } else {
             current_operation = &drag_vertex_operation;
