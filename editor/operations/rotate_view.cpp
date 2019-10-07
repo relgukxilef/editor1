@@ -38,16 +38,7 @@ namespace ge1 {
 
         view_matrix = turntable_rotate(origin, vec2{x, y} * 0.005f, 5);
 
-        glBindBuffer(
-            GL_COPY_WRITE_BUFFER, c.current_view->view_properties_buffer
-        );
-        glBufferSubData(
-            GL_COPY_WRITE_BUFFER, 0, 16 * sizeof(float),
-            value_ptr(
-                c.current_view->projection_matrix *
-                c.current_view->view_matrix
-            )
-        );
+        c.current_view->update_view_matrix();
 
         return status::running;
     }

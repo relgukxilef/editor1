@@ -23,16 +23,7 @@ operation::status pan_view::mouse_move_event(context& c, double x, double y) {
         1
     );
 
-    glBindBuffer(
-        GL_COPY_WRITE_BUFFER, c.current_view->view_properties_buffer
-    );
-    glBufferSubData(
-        GL_COPY_WRITE_BUFFER, 0, 16 * sizeof(float),
-        value_ptr(
-            c.current_view->projection_matrix *
-            c.current_view->view_matrix
-        )
-    );
+    c.current_view->update_view_matrix();
 
     return status::running;
 }
