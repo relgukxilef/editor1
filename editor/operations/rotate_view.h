@@ -12,6 +12,6 @@ namespace ge1 {
         status mouse_move_event(context &c, double x, double y) override;
         status mouse_button_event(context &, int, int action, int) override;
 
-        glm::vec2 previous_mouse;
+        glm::mat4 origin;
     };
 }

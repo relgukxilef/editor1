@@ -8,11 +8,25 @@ using namespace glm;
 
 namespace ge1 {
 
+    namespace {
+        mat4 turntable_rotate(mat4 m, vec2 rotation, float depth) {
+            m[3].z += depth;
+            auto transposed = transpose(mat3(m));
+            auto center = -transposed * m[3];
+
+            m = rotate(m, rotation.x, {0, 0, 1});
+            m = rotate(m, rotation.y, {transpose(m)[0]});
+
+            m[3] = vec4(mat3(m) * center, 1);
+            m[3].z -= depth;
+            return m;
+        }
+    }
+
     operation::status rotate_view::trigger(context& c, double x, double y) {
+        const auto& view_matrix = c.current_view->view_matrix;
 
-        vec2 mouse_ndc = {x / c.width * 2 - 1, 1 - y / c.height * 2};
-
-        previous_mouse = {x, y};
+        origin = turntable_rotate(view_matrix, vec2{x, y} * -0.005f, 5);
 
         return status::running;
     }
@@ -20,18 +34,9 @@ namespace ge1 {
     operation::status rotate_view::mouse_move_event(
         context& c, double x, double y
     ) {
-        auto delta = (vec2(x, y) - previous_mouse) * 0.005f;
-        previous_mouse = {x, y};
-
         auto& view_matrix = c.current_view->view_matrix;
 
-        view_matrix = rotate(
-            view_matrix, delta.x, {0, 0, 1}
-        );
-        view_matrix = rotate(
-            view_matrix, delta.y,
-            {transpose(view_matrix) * vec4(1, 0, 0, 0)}
-        );
+        view_matrix = turntable_rotate(origin, vec2{x, y} * 0.005f, 5);
 
         glBindBuffer(
             GL_COPY_WRITE_BUFFER, c.current_view->view_properties_buffer
