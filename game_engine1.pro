@@ -9,6 +9,7 @@ DEFINES += GLEW_STATIC
 LIBS += -lglfw3dll -lglew32s -lopengl32
 
 SOURCES += \
+	editor/operations/pan_view.cpp \
 	main.cpp \
     pass.cpp \
     composition.cpp \
@@ -28,6 +29,7 @@ SOURCES += \
     editor/operations/rotate_view.cpp
 
 HEADERS += \
+	editor/operations/pan_view.h \
     pass.h \
     composition.h \
     renderable.h \
