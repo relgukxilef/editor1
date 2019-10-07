@@ -56,10 +56,10 @@ namespace ge1 {
         const char* tesselation_evaluation_shader,
         const char* geometry_shader,
         const char* fragment_shader,
-        span<GLuint> libraries,
-        span<program_attribute_parameter> attributes,
-        span<program_uniform_parameter> uniforms,
-        span<program_uniform_block_parameter> uniform_blocks
+        span<const GLuint> libraries,
+        span<const program_attribute_parameter> attributes,
+        span<const program_uniform_parameter> uniforms,
+        span<const program_uniform_block_parameter> uniform_blocks
     ) {
         unique_shader shaders[5] = {
             vertex_shader == nullptr ?
