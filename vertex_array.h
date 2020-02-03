@@ -61,6 +61,10 @@ namespace ge1 {
     GLuint create_vertex_array(
         unsigned int vertex_capacity,
         span<const attribute_pack_parameter> attribute_packs,
+        unsigned int element_capacity = 0,
+        GLuint* element_array_buffer = nullptr,
+        GLenum element_array_type = GL_UNSIGNED_INT,
+        GLenum element_array_usage = GL_DYNAMIC_DRAW,
         unsigned int draw_indirect_capacity = 0,
         GLuint* draw_indirect_buffer = nullptr,
         GLenum draw_indirect_usage = GL_DYNAMIC_DRAW

@@ -23,6 +23,22 @@ namespace ge1 {
         GLenum mode;
     };
 
+    struct draw_elements_call : public renderable {
+        draw_elements_call(
+            GLuint vertex_array, GLuint program,
+            GLenum mode, GLint count, GLenum type, unsigned indices
+        );
+
+        void render() override;
+
+        GLuint vertex_array;
+        GLuint program;
+        GLenum mode;
+        GLsizei count;
+        GLenum type;
+        const void *indices;
+    };
+
     struct draw_arrays_indirect_command {
         GLuint count, instance_count, first, base_instance;
     };

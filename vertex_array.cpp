@@ -29,9 +29,10 @@ namespace ge1 {
         return name;
     }
 
-    GLuint create_vertex_array(
-        unsigned int vertex_capacity,
+    GLuint create_vertex_array(unsigned int vertex_capacity,
         span<const attribute_pack_parameter> attribute_packs,
+        unsigned int element_capacity, GLuint* element_array_buffer, GLenum element_array_type,
+        GLenum element_array_usage,
         unsigned int draw_indirect_capacity, GLuint *draw_indirect_buffer,
         GLenum draw_indirect_usage
     ) {
@@ -59,11 +60,30 @@ namespace ge1 {
             }
         }
 
+        if (element_array_buffer != nullptr) {
+            glCreateBuffers(1, element_array_buffer);
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, *element_array_buffer);
+            unsigned element_size;
+            if (element_array_type == GL_UNSIGNED_BYTE) {
+                element_size = 1;
+            } else if (element_array_type == GL_UNSIGNED_SHORT) {
+                element_size = 2;
+            } else if (element_array_type == GL_UNSIGNED_INT) {
+                element_size = 4;
+            } else {
+                throw std::runtime_error("invalid element type");
+            }
+            glBufferData(
+                GL_ELEMENT_ARRAY_BUFFER, element_capacity * element_size,
+                nullptr, element_array_usage
+            );
+        }
+
         if (draw_indirect_buffer != nullptr) {
             glCreateBuffers(1, draw_indirect_buffer);
             glBindBuffer(GL_DRAW_INDIRECT_BUFFER, *draw_indirect_buffer);
             glBufferData(
-                GL_ARRAY_BUFFER, draw_indirect_capacity * 4 * 4,
+                GL_DRAW_INDIRECT_BUFFER, draw_indirect_capacity * 4 * 4,
                 nullptr, draw_indirect_usage
             );
         }
