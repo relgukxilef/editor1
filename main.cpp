@@ -1,5 +1,6 @@
 #include <iostream>
 #include <memory>
+#include <unordered_map>
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -21,6 +22,10 @@
 #include "editor/operations/rotate_view.h"
 #include "editor/operations/pan_view.h"
 #include "editor/operations/dolly_view.h"
+
+#include <tiny_obj_loader.h>
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
 
 using namespace std;
 using namespace glm;
@@ -138,10 +143,11 @@ void key_callback(
 void window_size_callback(GLFWwindow*, int width, int height) {
     current_context.width = static_cast<unsigned int>(width);
     current_context.height = static_cast<unsigned int>(height);
+
     glViewport(0, 0, width, height);
 
     current_context.current_view->projection_matrix = perspective(
-        radians(45.0f), static_cast<float>(width) / height, 0.1f, 100.0f
+        radians(60.0f), static_cast<float>(width) / height, 0.1f, 100.0f
     );
 
     glBindBuffer(
@@ -160,12 +166,14 @@ void window_size_callback(GLFWwindow*, int width, int height) {
 int main() {
     GLFWwindow* window;
 
-    glfwWindowHint(GLFW_SAMPLES, 8);
+    glfwWindowHint(GLFW_SAMPLES, 4);
+    glfwWindowHint(GLFW_ALPHA_BITS, 0);
+    glfwWindowHint(GLFW_STENCIL_BITS, 0);
     glfwSwapInterval(1);
 
     GLFWmonitor *monitor = glfwGetPrimaryMonitor();
     const GLFWvidmode *mode = glfwGetVideoMode(monitor);
-    int screen_width = mode->width, screen_height = mode->height;
+    int screen_width = 1270, screen_height = 710;
 
     window = glfwCreateWindow(
         screen_width, screen_height, "demo", nullptr, nullptr
@@ -199,7 +207,8 @@ int main() {
 
 
     enum attributes : GLuint {
-        position, color, selection
+        position, color, selection, normal, texture_coordinates,
+        texture_unit, texture_slice
     };
 
     GLuint widget_positions_buffer, widget_colors_buffer;
@@ -290,8 +299,8 @@ int main() {
         GL_FRAGMENT_SHADER, "shaders/utils.fs"
     );
 
-    GLint solid_model_matrix, point_handle_model_matrix;
-    GLint edge_handle_model_matrix;
+    GLuint solid_model_matrix, point_handle_model_matrix;
+    GLuint edge_handle_model_matrix;
 
     unique_program solid_program = compile_program(
         "shaders/solid.vs", nullptr, nullptr, nullptr, "shaders/solid.fs",
@@ -300,7 +309,7 @@ int main() {
         {
             {"model", &solid_model_matrix}
         }, {
-            {"view_projection", view_properties},
+            {"view_properties", view_properties},
         }
     );
 
@@ -312,7 +321,7 @@ int main() {
         {
             {"model", &point_handle_model_matrix}
         }, {
-            {"view_projection", view_properties},
+            {"view_properties", view_properties},
         }
     );
 
@@ -324,7 +333,7 @@ int main() {
         {
             {"model", &edge_handle_model_matrix}
         }, {
-            {"view_projection", view_properties},
+            {"view_properties", view_properties},
         }
     );
 
@@ -356,12 +365,248 @@ int main() {
         point_handle_program.get_name()
     );
     current_context.current_view->view_matrix =
-        lookAt(vec3(2, 0, 2), {0, 0, 0}, {0, 0, 1});
+        lookAt(vec3(-10, 0, 2), {0, 0, 2}, {0, 0, 1});
 
     multi_draw_arrays_indirect_call grid_draw_call(
         widget_vertex_array, nullptr, 1, solid_program.get_name(), GL_LINES
     );
 
+
+    tinyobj::attrib_t attributes;
+    vector<tinyobj::shape_t> shapes;
+    vector<tinyobj::material_t> materials;
+
+    string error;
+
+    bool success = LoadObj(
+        &attributes, &shapes, &materials, &error, "models/sponza.obj", "models"
+    );
+
+    if (!success) {
+        throw runtime_error(error);
+    }
+
+    struct texture_array_index {
+        unsigned unit, slice;
+    };
+    struct texture_array {
+        unsigned width, height;
+        vector<unique_ptr<unsigned char[]>> data;
+    };
+    vector<texture_array> texture_data;
+    unordered_map<string, texture_array_index> texture_indices;
+    map<pair<unsigned, unsigned>, unsigned> resolution_textures;
+    vector<texture_array_index> material_textures;
+    material_textures.reserve(materials.size());
+
+    stbi_set_flip_vertically_on_load(true);
+
+    for (const auto& material : materials) {
+        if (!material.diffuse_texname.empty()) {
+            auto i = texture_indices.find(material.diffuse_texname);
+            if (i == texture_indices.end()) {
+                int width, height, channel;
+                auto image = stbi_load(
+                    ("models\\" + material.diffuse_texname).c_str(),
+                    &width, &height, &channel, 4
+                );
+                assert(image);
+
+                auto resolution = resolution_textures.find({width, height});
+                if (resolution == resolution_textures.end()) {
+                    resolution = resolution_textures.insert(
+                        {{width, height}, texture_data.size()}
+                    ).first;
+                    texture_data.push_back({
+                        static_cast<unsigned>(width),
+                        static_cast<unsigned>(height), {}
+                    });
+                }
+
+                auto& slices = texture_data[resolution->second].data;
+                i = texture_indices.insert({
+                    material.diffuse_texname,
+                    {
+                        resolution->second,
+                        static_cast<unsigned>(slices.size())
+                    }
+                }).first;
+
+                slices.push_back(unique_ptr<unsigned char[]>(image));
+            }
+            material_textures.push_back(i->second);
+        } else {
+            material_textures.push_back({0, 0});
+        }
+    }
+
+    vector<unsigned> textures;
+    textures.resize(texture_data.size());
+    glGenTextures(static_cast<signed>(textures.size()), textures.data());
+
+    for (auto texture : textures) {
+        glBindTexture(GL_TEXTURE_2D_ARRAY, texture);
+        glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexParameteri(
+            GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR
+        );
+        glTexParameteri(
+            GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_LINEAR
+        );
+        glTexParameteri(
+            GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAX_ANISOTROPY, 16
+        );
+    }
+
+    {
+        auto i = 0u;
+        for (auto& data : texture_data) {
+            glBindTexture(GL_TEXTURE_2D_ARRAY, textures[i]);
+            auto width = data.width, height = data.height;
+            glTexStorage3D(
+                GL_TEXTURE_2D_ARRAY,
+                static_cast<int>(std::log2(std::max(width, height))),
+                GL_RGB5_A1, width, height, data.data.size()
+            );
+            /*glTexImage3D(
+                GL_TEXTURE_2D_ARRAY, 0, GL_RGB5_A1,
+                width, height, data.data.size(),
+                0,  GL_RGBA,  GL_UNSIGNED_BYTE, nullptr
+            );*/
+            auto j = 0u;
+            for (auto& texture : data.data) {
+                glTexSubImage3D(
+                    GL_TEXTURE_2D_ARRAY, 0, 0, 0, j, width, height, 1,
+                    GL_RGBA, GL_UNSIGNED_BYTE, texture.get()
+                );
+                j++;
+            }
+            glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
+            i++;
+        }
+    }
+
+    auto face_vertex_count = 0u;
+    for (const auto& shape : shapes) {
+        face_vertex_count += shape.mesh.indices.size();
+    }
+
+    vector<float> obj_data;
+    obj_data.reserve(face_vertex_count * 8);
+    vector<unsigned char> obj_texture_indices;
+    obj_texture_indices.reserve(face_vertex_count * 2);
+
+    for (const auto& shape : shapes) {
+        for (const auto& vertex : shape.mesh.indices) {
+            for (auto i = 0u; i < 3; i++) {
+                obj_data.push_back(
+                    attributes.vertices[
+                        static_cast<unsigned>(vertex.vertex_index) * 3 + i
+                    ] / 100.f
+                );
+            }
+            for (auto i = 0u; i < 3; i++) {
+                obj_data.push_back(
+                    attributes.normals[
+                        static_cast<unsigned>(vertex.normal_index) * 3 + i
+                    ]
+                );
+            }
+            for (auto i = 0u; i < 2; i++) {
+                // TODO: texcoord_index can be -1
+                obj_data.push_back(
+                    attributes.texcoords[
+                        static_cast<unsigned>(
+                            std::max(vertex.texcoord_index, 0)
+                        ) * 2 + i
+                    ]
+                );
+            }
+        }
+        for (const auto& material : shape.mesh.material_ids) {
+            auto index =
+                material_textures[static_cast<unsigned>(material)];
+            for (auto i = 0u; i < 3; i++) {
+                obj_texture_indices.push_back(
+                    static_cast<unsigned char>(index.unit)
+                );
+                obj_texture_indices.push_back(
+                    static_cast<unsigned char>(index.slice)
+                );
+            }
+        }
+    }
+
+    unsigned obj_vertex_buffer, obj_texture_indices_buffer;
+    auto obj_vertex_array = create_vertex_array(face_vertex_count, {
+        {{
+            {position, 3, GL_FLOAT, GL_FALSE, 0},
+            {normal, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float)},
+            {texture_coordinates, 2, GL_FLOAT, GL_FALSE, 6 * sizeof(float)},
+        }, 8 * sizeof(float), GL_STATIC_DRAW, &obj_vertex_buffer},
+        {{
+            {texture_unit, 1, GL_UNSIGNED_BYTE, GL_FALSE, 0},
+            {texture_slice, 1, GL_UNSIGNED_BYTE, GL_FALSE, 1},
+        }, 2 * sizeof(char), GL_STATIC_DRAW, &obj_texture_indices_buffer}
+    });
+
+    glBindBuffer(GL_COPY_WRITE_BUFFER, obj_vertex_buffer);
+    glBufferSubData(
+        GL_COPY_WRITE_BUFFER, 0,
+        face_vertex_count * 8 * sizeof(float), obj_data.data()
+    );
+    glBindBuffer(GL_COPY_WRITE_BUFFER, obj_texture_indices_buffer);
+    glBufferSubData(
+        GL_COPY_WRITE_BUFFER, 0,
+        face_vertex_count * 2 * sizeof(char), obj_texture_indices.data()
+    );
+
+    GLuint obj_model_matrix, obj_textures[4];
+    auto obj_program = compile_program(
+        "shaders/obj.vs", nullptr, nullptr,
+        nullptr, "shaders/obj.fs",
+        {fragment_utils.get_name()},
+        {
+            {"position", position}, {"normal", normal},
+            {"texture_coordinates", texture_coordinates},
+            {"unit", texture_unit},
+            {"slice", texture_slice},
+        },
+        {
+            {"model", &obj_model_matrix},
+            {"textures[0]", &obj_textures[0]},
+            {"textures[1]", &obj_textures[1]},
+            {"textures[2]", &obj_textures[2]},
+            {"textures[3]", &obj_textures[3]},
+        }, {
+            {"view_properties", view_properties},
+        }
+    );
+
+    glUseProgram(obj_program);
+    glUniformMatrix4fv(
+        obj_model_matrix, 1, GL_FALSE, value_ptr(mat4(
+            1, 0, 0, 0,
+            0, 0, 1, 0,
+            0, 1, 0, 0,
+            0, 0, 0, 1
+        ))
+    );
+    for (auto i = 0u; i < textures.size(); i++) {
+        glActiveTexture(GL_TEXTURE0 + i);
+        glBindTexture(GL_TEXTURE_2D_ARRAY, textures[i]);
+        glUniform1i(obj_textures[i], i);
+    }
+
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_FRONT);
+
+    draw_arrays_call obj_draw_call(
+        obj_vertex_array, 0, static_cast<int>(face_vertex_count),
+        obj_program, GL_TRIANGLES
+    );
 
     composition composition;
 
@@ -382,7 +627,6 @@ int main() {
         current_context.current_object->vertex_call
     );
 
-
     int width, height;
     glfwGetWindowSize(window, &width, &height);
     window_size_callback(window, width, height);
@@ -392,11 +636,13 @@ int main() {
 
     glfwSetWindowSizeCallback(window, &window_size_callback);
 
+    glClearColor(1, 1, 1, 1);
 
     while (!glfwWindowShouldClose(window)) {
-        glClearColor(255, 255, 255, 255);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        composition.render();
+        //composition.render();
+
+        obj_draw_call.render();
 
         glfwSwapBuffers(window);
 

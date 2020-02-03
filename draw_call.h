@@ -28,7 +28,8 @@ namespace ge1 {
     };
 
     struct multi_draw_arrays_indirect_call : public renderable {
-        multi_draw_arrays_indirect_call(GLuint vertex_array, const void *offset, GLint draw_count,
+        multi_draw_arrays_indirect_call(
+            GLuint vertex_array, const void *offset, GLint draw_count,
             GLuint program, GLenum mode
         );
 

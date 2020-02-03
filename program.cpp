@@ -114,11 +114,15 @@ namespace ge1 {
         }
 
         for (auto& uniform : uniforms) {
-            *uniform.location = glGetUniformLocation(name, uniform.name);
+            *uniform.location =
+                static_cast<unsigned>(glGetUniformLocation(name, uniform.name));
         }
 
         for (auto& uniform_block : uniform_blocks) {
             GLuint index = glGetUniformBlockIndex(name, uniform_block.name);
+            if (index > 128) {
+                throw std::runtime_error("large uniform block index");
+            }
             glUniformBlockBinding(name, index, uniform_block.binding);
         }
 

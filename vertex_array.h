@@ -51,6 +51,7 @@ namespace ge1 {
         GLuint *mesh, *instances;
     };
 
+    // TODO: allow integer attributes (glVertexAttribIPointer)
     GLuint create_vertex_array(
         span<const attribute_pointer_parameter> attributes,
         GLuint element_array_buffer = 0,

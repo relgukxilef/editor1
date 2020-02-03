@@ -31,7 +31,7 @@ namespace ge1 {
 
     struct program_uniform_parameter {
         const char* name;
-        GLint* location;
+        GLuint* location;
     };
 
     struct program_uniform_block_parameter {

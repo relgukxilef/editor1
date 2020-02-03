@@ -9,6 +9,7 @@ DEFINES += GLEW_STATIC
 LIBS += -lglfw3dll -lglew32s -lopengl32
 
 SOURCES += \
+	editor/io/obj_file.cpp \
 	editor/operations/dolly_view.cpp \
 	editor/operations/pan_view.cpp \
 	main.cpp \
@@ -30,6 +31,7 @@ SOURCES += \
     editor/operations/rotate_view.cpp
 
 HEADERS += \
+	editor/io/obj_file.h \
 	editor/operations/dolly_view.h \
 	editor/operations/pan_view.h \
     pass.h \
@@ -66,4 +68,6 @@ DISTFILES += \
     shaders/point_handle.fs \
     shaders/point_handle.vs \
     shaders/edge_handle.fs \
-    shaders/edge_handle.vs
+	shaders/edge_handle.vs \
+	shaders/obj.vs \
+	shaders/obj.fs \
