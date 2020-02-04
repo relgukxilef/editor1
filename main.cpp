@@ -32,6 +32,18 @@ using namespace glm;
 
 using namespace ge1;
 
+template<>
+struct std::hash<array<int, 4>> {
+    auto operator() (const std::array<int, 4>& key) const {
+        std::hash<int> hasher;
+        size_t result = 0;
+        for(size_t i = 0; i < 4; ++i) {
+            result = result * 31 + hasher(key[i]);
+        }
+        return result;
+    }
+};
+
 struct unique_glfw {
     unique_glfw() {
         if (!glfwInit()) {
@@ -492,80 +504,115 @@ int main() {
         face_vertex_count += shape.mesh.indices.size();
     }
 
-    vector<float> obj_data;
-    obj_data.reserve(face_vertex_count * 8);
+    vector<float> obj_vertices;
+    vector<unsigned> obj_faces;
+    unordered_map<array<int, 4>, unsigned> vertex_indices;
     vector<unsigned char> obj_texture_indices;
     obj_texture_indices.reserve(face_vertex_count * 2);
 
+    // TODO: get one representation for line calculation and one for rendering
+    // the former only considers vertex positions,
+    // the latter considers all attributes
+
     for (const auto& shape : shapes) {
-        for (const auto& vertex : shape.mesh.indices) {
+        auto vertex = shape.mesh.indices.begin();
+        auto material = shape.mesh.material_ids.begin();
+        while (vertex != shape.mesh.indices.end()) {
             for (auto i = 0u; i < 3; i++) {
-                obj_data.push_back(
-                    attributes.vertices[
-                        static_cast<unsigned>(vertex.vertex_index) * 3 + i
-                    ] / 100.f
-                );
+                array<int, 4> indices = {
+                    vertex->vertex_index, vertex->normal_index,
+                    vertex->texcoord_index, *material
+                };
+
+                auto index = vertex_indices.find(indices);
+                if (index == vertex_indices.end()) {
+                    index = vertex_indices.insert(
+                        index, {indices, vertex_indices.size()}
+                    );
+
+                    for (auto i = 0u; i < 3; i++) {
+                        obj_vertices.push_back(
+                            attributes.vertices[
+                                static_cast<unsigned>(
+                                    vertex->vertex_index
+                                ) * 3 + i
+                            ] / 100.f
+                        );
+                    }
+                    for (auto i = 0u; i < 3; i++) {
+                        obj_vertices.push_back(
+                            attributes.normals[
+                                static_cast<unsigned>(
+                                    vertex->normal_index
+                                ) * 3 + i
+                            ]
+                        );
+                    }
+                    for (auto i = 0u; i < 2; i++) {
+                        obj_vertices.push_back(
+                            attributes.texcoords[
+                                static_cast<unsigned>(
+                                    std::max(vertex->texcoord_index, 0)
+                                ) * 2 + i
+                            ]
+                        );
+                    }
+                    auto texture_index =
+                        material_textures[static_cast<unsigned>(*material)];
+                    obj_texture_indices.push_back(
+                        static_cast<unsigned char>(texture_index.unit)
+                    );
+                    obj_texture_indices.push_back(
+                        static_cast<unsigned char>(texture_index.slice)
+                    );
+                }
+
+                obj_faces.push_back(index->second);
+                vertex++;
             }
-            for (auto i = 0u; i < 3; i++) {
-                obj_data.push_back(
-                    attributes.normals[
-                        static_cast<unsigned>(vertex.normal_index) * 3 + i
-                    ]
-                );
-            }
-            for (auto i = 0u; i < 2; i++) {
-                // TODO: texcoord_index can be -1
-                obj_data.push_back(
-                    attributes.texcoords[
-                        static_cast<unsigned>(
-                            std::max(vertex.texcoord_index, 0)
-                        ) * 2 + i
-                    ]
-                );
-            }
-        }
-        for (const auto& material : shape.mesh.material_ids) {
-            auto index =
-                material_textures[static_cast<unsigned>(material)];
-            for (auto i = 0u; i < 3; i++) {
-                obj_texture_indices.push_back(
-                    static_cast<unsigned char>(index.unit)
-                );
-                obj_texture_indices.push_back(
-                    static_cast<unsigned char>(index.slice)
-                );
-            }
+
+            material++;
         }
     }
+    unsigned vertex_count = static_cast<unsigned>(vertex_indices.size());
 
     unsigned obj_vertex_buffer, obj_texture_indices_buffer;
-    auto obj_vertex_array = create_vertex_array(face_vertex_count, {
-        {{
-            {position, 3, GL_FLOAT, GL_FALSE, 0},
-            {normal, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float)},
-            {texture_coordinates, 2, GL_FLOAT, GL_FALSE, 6 * sizeof(float)},
-        }, 8 * sizeof(float), GL_STATIC_DRAW, &obj_vertex_buffer},
-        {{
-            {texture_unit, 1, GL_UNSIGNED_BYTE, GL_FALSE, 0},
-            {texture_slice, 1, GL_UNSIGNED_BYTE, GL_FALSE, 1},
-        }, 2 * sizeof(char), GL_STATIC_DRAW, &obj_texture_indices_buffer}
-    });
+    unsigned obj_face_buffer;
+    auto obj_vertex_array = create_vertex_array(
+        vertex_count,
+        {
+            {{
+                {position, 3, GL_FLOAT, GL_FALSE, 0},
+                {normal, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float)},
+                {texture_coordinates, 2, GL_FLOAT, GL_FALSE, 6 * sizeof(float)},
+            }, 8 * sizeof(float), GL_STATIC_DRAW, &obj_vertex_buffer},
+            {{
+                {texture_unit, 1, GL_UNSIGNED_BYTE, GL_FALSE, 0},
+                {texture_slice, 1, GL_UNSIGNED_BYTE, GL_FALSE, 1},
+            }, 2 * sizeof(char), GL_STATIC_DRAW, &obj_texture_indices_buffer}
+        },
+        face_vertex_count, &obj_face_buffer
+    );
 
     glBindBuffer(GL_COPY_WRITE_BUFFER, obj_vertex_buffer);
     glBufferSubData(
         GL_COPY_WRITE_BUFFER, 0,
-        face_vertex_count * 8 * sizeof(float), obj_data.data()
+        vertex_count * 8 * sizeof(float), obj_vertices.data()
     );
     glBindBuffer(GL_COPY_WRITE_BUFFER, obj_texture_indices_buffer);
     glBufferSubData(
         GL_COPY_WRITE_BUFFER, 0,
-        face_vertex_count * 2 * sizeof(char), obj_texture_indices.data()
+        vertex_count * 2 * sizeof(char), obj_texture_indices.data()
+    );
+    glBindBuffer(GL_COPY_WRITE_BUFFER, obj_face_buffer);
+    glBufferSubData(
+        GL_COPY_WRITE_BUFFER, 0,
+        face_vertex_count * sizeof(unsigned), obj_faces.data()
     );
 
     GLuint obj_model_matrix, obj_textures[4];
     auto obj_program = compile_program(
-        "shaders/obj.vs", nullptr, nullptr,
-        nullptr, "shaders/obj.fs",
+        "shaders/obj.vs", nullptr, nullptr, nullptr, "shaders/obj.fs",
         {fragment_utils.get_name()},
         {
             {"position", position}, {"normal", normal},
@@ -603,9 +650,9 @@ int main() {
     glEnable(GL_CULL_FACE);
     glCullFace(GL_FRONT);
 
-    draw_arrays_call obj_draw_call(
-        obj_vertex_array, 0, static_cast<int>(face_vertex_count),
-        obj_program, GL_TRIANGLES
+    draw_elements_call obj_draw_call(
+        obj_vertex_array, obj_program, GL_TRIANGLES,
+        static_cast<int>(face_vertex_count), GL_UNSIGNED_INT, 0
     );
 
     composition composition;

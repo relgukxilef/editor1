@@ -29,10 +29,11 @@ namespace ge1 {
         return name;
     }
 
-    GLuint create_vertex_array(unsigned int vertex_capacity,
+    GLuint create_vertex_array(
+        unsigned int vertex_capacity,
         span<const attribute_pack_parameter> attribute_packs,
-        unsigned int element_capacity, GLuint* element_array_buffer, GLenum element_array_type,
-        GLenum element_array_usage,
+        unsigned int element_capacity, GLuint* element_array_buffer,
+        GLenum element_array_type, GLenum element_array_usage,
         unsigned int draw_indirect_capacity, GLuint *draw_indirect_buffer,
         GLenum draw_indirect_usage
     ) {
