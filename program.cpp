@@ -51,17 +51,14 @@ namespace ge1 {
         }
     }
 
-    GLuint compile_program(const char* vertex_shader,
-        const char* tesselation_control_shader,
-        const char* tesselation_evaluation_shader,
-        const char* geometry_shader,
-        const char* fragment_shader,
+    GLuint compile_program(
+        const char* vertex_shader, const char* tesselation_control_shader,
+        const char* tesselation_evaluation_shader, const char* geometry_shader,
+        const char* fragment_shader, const char* compute_shader,
         span<const GLuint> libraries,
-        span<const program_attribute_parameter> attributes,
-        span<const program_uniform_parameter> uniforms,
-        span<const program_uniform_block_parameter> uniform_blocks
+        span<const program_attribute_parameter> attributes
     ) {
-        unique_shader shaders[5] = {
+        unique_shader shaders[6] = {
             vertex_shader == nullptr ?
                 0 : compile_shader(GL_VERTEX_SHADER, vertex_shader),
             tesselation_control_shader == nullptr ?
@@ -75,7 +72,9 @@ namespace ge1 {
             geometry_shader == nullptr ?
                 0 : compile_shader(GL_GEOMETRY_SHADER, geometry_shader),
             fragment_shader == nullptr ?
-                0 : compile_shader(GL_FRAGMENT_SHADER, fragment_shader)
+                0 : compile_shader(GL_FRAGMENT_SHADER, fragment_shader),
+            compute_shader == nullptr ?
+                0 : compile_shader(GL_COMPUTE_SHADER, compute_shader)
         };
 
         GLuint name = glCreateProgram();
@@ -113,20 +112,97 @@ namespace ge1 {
             }
         }
 
-        for (auto& uniform : uniforms) {
-            *uniform.location =
-                static_cast<unsigned>(glGetUniformLocation(name, uniform.name));
-        }
+        return name;
+    }
 
+    GLuint compile_program(
+        const char* vertex_shader,
+        const char* tesselation_control_shader,
+        const char* tesselation_evaluation_shader,
+        const char* geometry_shader,
+        const char* fragment_shader,
+        span<const GLuint> libraries,
+        span<const program_attribute_parameter> attributes,
+        span<const program_uniform_parameter> uniforms,
+        span<const program_uniform_block_parameter> uniform_blocks
+    ) {
+        auto name = compile_program(
+            vertex_shader, tesselation_control_shader,
+            tesselation_evaluation_shader, geometry_shader, fragment_shader,
+            nullptr,
+            libraries, attributes
+        );
+
+        get_uniform_locations(name, uniforms);
+
+        bind_uniform_blocks(name, uniform_blocks);
+
+        return name;
+    }
+
+    GLuint compile_program(
+        const char* vertex_shader, const char* tesselation_control_shader,
+        const char* tesselation_evaluation_shader, const char* geometry_shader,
+        const char* fragment_shader,
+        span<const GLuint> libraries,
+        span<const program_attribute_parameter> attributes
+    ) {
+        return compile_program(
+            vertex_shader, tesselation_control_shader,
+            tesselation_evaluation_shader, geometry_shader, fragment_shader,
+            nullptr,
+            libraries, attributes
+        );
+    }
+
+    GLuint compile_program(
+        const char* compute_shader, span<const GLuint> libraries
+    ) {
+        return compile_program(
+            nullptr, nullptr, nullptr, nullptr, nullptr, compute_shader,
+            libraries, {}
+        );
+    }
+
+    void get_uniform_locations(
+        GLuint program,
+        span<const program_uniform_parameter> uniforms
+    ) {
+        for (auto& uniform : uniforms) {
+            *uniform.location = static_cast<unsigned>(
+                glGetUniformLocation(program, uniform.name)
+            );
+        }
+    }
+
+    void bind_uniform_blocks(
+        GLuint program,
+        span<const program_uniform_block_parameter> uniform_blocks
+    ) {
         for (auto& uniform_block : uniform_blocks) {
-            GLuint index = glGetUniformBlockIndex(name, uniform_block.name);
+            GLuint index = glGetUniformBlockIndex(program, uniform_block.name);
             if (index > 128) {
                 throw std::runtime_error("large uniform block index");
             }
-            glUniformBlockBinding(name, index, uniform_block.binding);
+            glUniformBlockBinding(program, index, uniform_block.binding);
         }
+    }
 
-        return name;
+    void bind_shader_storage_blocks(
+        GLuint program,
+        span<const program_shader_storage_block_parameter> shader_storage_blocks
+    ) {
+        for (auto& shader_storage_block : shader_storage_blocks) {
+            GLuint index = glGetProgramResourceIndex(
+                program, GL_SHADER_STORAGE_BLOCK, shader_storage_block.name
+            );
+            if (index > 128) {
+                throw std::runtime_error("large shader storage block index");
+            }
+            glShaderStorageBlockBinding(
+                program, index, shader_storage_block.binding
+            );
+        }
     }
 
 }
