@@ -12,6 +12,7 @@ namespace ge1 {
 
         for (auto attribute : attributes) {
             glBindBuffer(GL_ARRAY_BUFFER, attribute.vertex_buffer);
+            glEnableVertexAttribArray(attribute.index);
             glVertexAttribPointer(
                 attribute.index, attribute.size, attribute.type,
                 attribute.normalized, attribute.stride,

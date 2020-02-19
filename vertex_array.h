@@ -58,6 +58,7 @@ namespace ge1 {
         GLuint draw_indirect_buffer = 0
     );
 
+    // TODO: allow sharing of attributes between packs
     GLuint create_vertex_array(
         unsigned int vertex_capacity,
         span<const attribute_pack_parameter> attribute_packs,
