@@ -32,14 +32,13 @@ vec4 get_position(uint vertex) {
 }
 
 float side(vec4 a, vec4 b, vec4 c) {
-    // TODO: doesn't work for polygons partially behind the camera
     vec4 offset_a = a - c;
     vec4 offset_b = b - c;
     vec4 vertex = c;
     return cross(
         offset_a.xyz * vertex.w - vertex.xyz * offset_a.w,
         offset_b.xyz * vertex.w - vertex.xyz * offset_b.w
-    ).z;
+    ).z * vertex.w;
 }
 
 void main(void) {
