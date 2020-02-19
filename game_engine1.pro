@@ -62,6 +62,7 @@ HEADERS += \
     editor/operations/rotate_view.h
 
 DISTFILES += \
+    shaders/outline.cs \
     shaders/solid.fs \
     shaders/solid.vs \
     shaders/utils.fs \

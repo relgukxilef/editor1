@@ -10,6 +10,7 @@
 !*.tes
 !*.gs
 !*.fs
+!*.cs
 !*.pro
 
 !*.txt

@@ -16,8 +16,6 @@ void main(void) {
         textures[vertex_unit],
         vec3(vertex_texture_coordinates, vertex_slice)
     );
-    if (t.a < 0.5) {
-        discard;
-    }
-    color = t.rgb * pow(light, 1.0 / 2.2);
+    color = t.rgb; //* pow(light, 1.0 / 2.2);
+    //color = vec3(1, 0, 1);
 }
