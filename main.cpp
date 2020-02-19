@@ -548,7 +548,7 @@ int main() {
         face_vertex_count += shape.mesh.indices.size();
     }
 
-    vector<float> obj_vertices;
+    vector<float> obj_positions, obj_normals, obj_texcoords;
     vector<unsigned> obj_faces;
     unordered_map<array<int, 4>, unsigned> face_vertex_indices;
     vector<unsigned char> obj_texture_indices;
@@ -592,7 +592,7 @@ int main() {
                     );
 
                     for (auto i = 0u; i < 3; i++) {
-                        obj_vertices.push_back(
+                        obj_positions.push_back(
                             attributes.vertices[
                                 static_cast<unsigned>(
                                     vertex->vertex_index
@@ -601,7 +601,7 @@ int main() {
                         );
                     }
                     for (auto i = 0u; i < 3; i++) {
-                        obj_vertices.push_back(
+                        obj_normals.push_back(
                             attributes.normals[
                                 static_cast<unsigned>(
                                     vertex->normal_index
@@ -610,7 +610,7 @@ int main() {
                         );
                     }
                     for (auto i = 0u; i < 2; i++) {
-                        obj_vertices.push_back(
+                        obj_texcoords.push_back(
                             attributes.texcoords[
                                 static_cast<unsigned>(
                                     std::max(vertex->texcoord_index, 0)
@@ -697,16 +697,21 @@ int main() {
 
     unsigned vertex_count = static_cast<unsigned>(face_vertex_indices.size());
 
-    unsigned obj_vertex_buffer, obj_texture_indices_buffer;
-    unsigned obj_face_buffer;
+    unsigned obj_position_buffer, obj_normal_buffer, obj_texcoord_buffer;
+    unsigned obj_texture_indices_buffer, obj_face_buffer;
+    // TODO: simplify vertex array creation
     auto obj_vertex_array = create_vertex_array(
         vertex_count,
         {
             {{
                 {position, 3, GL_FLOAT, GL_FALSE, 0},
-                {normal, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float)},
-                {texture_coordinates, 2, GL_FLOAT, GL_FALSE, 6 * sizeof(float)},
-            }, 8 * sizeof(float), GL_STATIC_DRAW, &obj_vertex_buffer},
+            }, 3 * sizeof(float), GL_STATIC_DRAW, &obj_position_buffer},
+            {{
+                {normal, 3, GL_FLOAT, GL_FALSE, 0},
+            }, 3 * sizeof(float), GL_STATIC_DRAW, &obj_normal_buffer},
+            {{
+                {texture_coordinates, 2, GL_FLOAT, GL_FALSE, 0},
+            }, 2 * sizeof(float), GL_STATIC_DRAW, &obj_texcoord_buffer},
             {{
                 {texture_unit, 1, GL_UNSIGNED_BYTE, GL_FALSE, 0},
                 {texture_slice, 1, GL_UNSIGNED_BYTE, GL_FALSE, 1},
@@ -715,8 +720,9 @@ int main() {
         face_vertex_count, &obj_face_buffer
     );
 
-    // TODO: upload obj vertices positions alone
-    buffer_sub_data(obj_vertex_buffer, obj_vertices);
+    buffer_sub_data(obj_position_buffer, obj_positions);
+    buffer_sub_data(obj_normal_buffer, obj_normals);
+    buffer_sub_data(obj_texcoord_buffer, obj_texcoords);
     buffer_sub_data(obj_texture_indices_buffer, obj_texture_indices);
     buffer_sub_data(obj_face_buffer, obj_faces);
 
@@ -739,8 +745,8 @@ int main() {
     auto outline_vertex_array = create_vertex_array(
         {
             {
-                obj_vertex_buffer, position, 3, GL_FLOAT, GL_FALSE,
-                8 * sizeof(float), 0
+                obj_position_buffer, position, 3, GL_FLOAT, GL_FALSE,
+                3 * sizeof(float), 0
             }
         },
         outline_faces_buffer
@@ -755,7 +761,7 @@ int main() {
     glUseProgram(outline_program);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, edge_vertices_buffer);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, edge_neighbours_buffer);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, obj_vertex_buffer);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, obj_position_buffer);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, outline_faces_buffer);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, counter_buffer);
 

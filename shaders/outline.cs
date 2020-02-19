@@ -24,8 +24,7 @@ layout(binding = 4) buffer counter_buffer {
 uniform mat4 model_view_projection_matrix;
 
 vec4 get_position(uint vertex) {
-    // TODO: pack positions
-    uint index = vertex * 8;
+    uint index = vertex * 3;
     return model_view_projection_matrix * vec4(
         vertices[index], vertices[index + 1], vertices[index + 2], 1.0
     );
@@ -52,7 +51,7 @@ void main(void) {
     float side_a = side(edge_a, edge_b, neighbour_a);
     float side_b = side(edge_b, edge_a, neighbour_b);
 
-    if (side_a * side_b <= 0) {
+    if (side_a * side_b <= 0 && (side_a >= 0 || side_b >= 0)) {
         // two vertices
         uint position = atomicAdd(counter, 1) * 2;
 
