@@ -21,6 +21,10 @@ layout(binding = 4) buffer counter_buffer {
     uint counter;
 };
 
+layout(binding = 5) writeonly buffer vertex_outline_neighbours_buffer {
+    uint vertex_outline_neighbours[];
+};
+
 uniform mat4 model_view_projection_matrix;
 
 vec4 get_position(uint vertex) {
@@ -43,19 +47,39 @@ float side(vec4 a, vec4 b, vec4 c) {
 void main(void) {
     uint id = gl_GlobalInvocationID.x * 2;
 
-    vec4 edge_a = get_position(edge_vertices[id]);
-    vec4 edge_b = get_position(edge_vertices[id + 1]);
+    // clip space transformation is performed ~12 times per vertex
+    uint start = edge_vertices[id];
+    uint end = edge_vertices[id + 1];
+
+    vec4 edge_a = get_position(start);
+    vec4 edge_b = get_position(end);
     vec4 neighbour_a = get_position(edge_neighbours[id]);
     vec4 neighbour_b = get_position(edge_neighbours[id + 1]);
 
+    // side is calculated three times per face
+    // but since this shader is memory bound it might not be a good idea to
+    // compute it in a separate step
     float side_a = side(edge_a, edge_b, neighbour_a);
     float side_b = side(edge_b, edge_a, neighbour_b);
 
-    if (side_a * side_b <= 0 && (side_a >= 0 || side_b >= 0)) {
+    //float edge_side = side(edge_a, edge_b, (neighbour_a + neighbour_b) * 0.5);
+    float edge_side = side_a - side_b;
+
+    if (edge_side > 0) {
+        uint temp = start;
+        start = end;
+        end = temp;
+    }
+
+    if (side_a * side_b <= 0) {// && (side_a >= 0 || side_b >= 0)) {
         // two vertices
         uint position = atomicAdd(counter, 1) * 2;
 
+        // TODO: might be better to pack starts and ends
+        // instead of interleaving them
         outline_faces[position] = edge_vertices[id];
         outline_faces[position + 1] = edge_vertices[id + 1];
+        vertex_outline_neighbours[start * 2] = end;
+        vertex_outline_neighbours[end * 2 + 1] = start;
     }
 }

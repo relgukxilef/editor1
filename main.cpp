@@ -62,7 +62,7 @@ void buffer_sub_data(GLuint buffer, vector<T> data) {
 }
 
 template<class T>
-void buffer_sub_data(GLuint buffer, span<const T> data) {
+void buffer_sub_data(GLuint buffer, span<T> data) {
     glBindBuffer(GL_COPY_WRITE_BUFFER, buffer);
     glBufferSubData(
         GL_COPY_WRITE_BUFFER, 0,
@@ -71,7 +71,7 @@ void buffer_sub_data(GLuint buffer, span<const T> data) {
 }
 
 template<class T>
-GLuint create_buffer(GLenum target, GLenum usage, span<const T> data) {
+GLuint create_buffer(GLenum target, GLenum usage, span<T> data) {
     GLuint name;
     glGenBuffers(1, &name);
     glBindBuffer(target, name);
@@ -741,6 +741,10 @@ int main() {
     GLuint counter_buffer = create_buffer<unsigned>(
         GL_SHADER_STORAGE_BUFFER, GL_STREAM_READ, {0}
     );
+    // linked list of vertices in outline
+    GLuint vertex_outline_neighbours_buffer = create_buffer_size<unsigned>(
+        GL_SHADER_STORAGE_BUFFER, GL_STREAM_COPY, vertex_count * 2
+    );
 
     auto outline_vertex_array = create_vertex_array(
         {
@@ -758,12 +762,16 @@ int main() {
         {"model_view_projection_matrix", &outline_matrix}
     });
 
-    glUseProgram(outline_program);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, edge_vertices_buffer);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, edge_neighbours_buffer);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, obj_position_buffer);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, outline_faces_buffer);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, counter_buffer);
+    bind_buffer_bases(GL_SHADER_STORAGE_BUFFER, {
+        {0, edge_vertices_buffer},
+        {1, edge_neighbours_buffer},
+        {2, obj_position_buffer},
+        {3, outline_faces_buffer},
+        {4, counter_buffer},
+        {5, vertex_outline_neighbours_buffer},
+    });
+
+    // TODO: draw outlines using geometry shader
 
     GLuint obj_model_matrix, obj_textures[4];
     auto obj_program = compile_program(
@@ -854,7 +862,10 @@ int main() {
     while (!glfwWindowShouldClose(window)) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+        // TODO: use clear instead
         buffer_sub_data(counter_buffer, span<const unsigned>{0});
+
+        obj_draw_call.render();
 
         glUseProgram(outline_program);
         glUniformMatrix4fv(outline_matrix, 1, GL_FALSE, value_ptr(
@@ -863,6 +874,7 @@ int main() {
         ));
         glDispatchCompute((edge_vertices.size() / 2 - 1) / 32 + 1, 1, 1);
 
+        // TODO: don't read data back to GPU, use indirect call instead
         GLuint outline_vertices_count;
         glBindBuffer(GL_COPY_READ_BUFFER, counter_buffer);
         glGetBufferSubData(
@@ -871,7 +883,9 @@ int main() {
 
         outline_draw_call.count = static_cast<int>(outline_vertices_count * 2);
 
-        composition.render();
+        outline_draw_call.render();
+
+        //composition.render();
 
         glfwSwapBuffers(window);
 

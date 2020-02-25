@@ -17,5 +17,4 @@ void main(void) {
         vec3(vertex_texture_coordinates, vertex_slice)
     );
     color = t.rgb; //* pow(light, 1.0 / 2.2);
-    //color = vec3(1, 0, 1);
 }

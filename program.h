@@ -44,6 +44,11 @@ namespace ge1 {
         GLuint binding;
     };
 
+    struct program_buffer_base_parameter {
+        GLuint binding_point;
+        GLuint buffer;
+    };
+
     [[deprecated]]
     GLuint compile_program(
         const char* vertex_shader,
@@ -84,5 +89,9 @@ namespace ge1 {
     void bind_shader_storage_blocks(
         GLuint program,
         span<const program_shader_storage_block_parameter> shader_storage_blocks
+    );
+
+    void bind_buffer_bases(
+        GLuint target, span<const program_buffer_base_parameter> buffers
     );
 }

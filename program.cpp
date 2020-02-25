@@ -205,4 +205,12 @@ namespace ge1 {
         }
     }
 
+    void bind_buffer_bases(
+        GLuint target, span<const program_buffer_base_parameter> buffers
+    ) {
+        for (auto buffer : buffers) {
+            glBindBufferBase(target, buffer.binding_point, buffer.buffer);
+        }
+    }
+
 }
