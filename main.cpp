@@ -9,10 +9,10 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#include "composition.h"
-#include "resources.h"
-#include "draw_call.h"
-#include "program.h"
+#include "ge1/composition.h"
+#include "ge1/resources.h"
+#include "ge1/draw_call.h"
+#include "ge1/program.h"
 #include "editor/operation.h"
 #include "editor/operations/drag_vertex.h"
 #include "editor/operations/add_vertex.h"
@@ -738,7 +738,7 @@ int main() {
         GL_ARRAY_BUFFER, GL_STREAM_COPY,
         static_cast<unsigned>(edge_vertices.size())
     );
-    GLuint counter_buffer = create_buffer<unsigned>(
+    GLuint counter_buffer = create_buffer<const unsigned>(
         GL_SHADER_STORAGE_BUFFER, GL_STREAM_READ, {0}
     );
     // linked list of vertices in outline

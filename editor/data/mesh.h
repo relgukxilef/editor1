@@ -6,8 +6,8 @@
 
 #include <glm/glm.hpp>
 
-#include "vertex_array.h"
-#include "buffer_vector.h"
+#include "ge1/vertex_array.h"
+#include "ge1/buffer_vector.h"
 
 namespace ge1 {
 

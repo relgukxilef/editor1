@@ -8,16 +8,13 @@ DEFINES += GLEW_STATIC
 
 LIBS += -lglfw3dll -lglew32s -lopengl32
 
+include(game_engine1/ge1.pri)
+
 SOURCES += \
+    main.cpp \
 	editor/io/obj_file.cpp \
 	editor/operations/dolly_view.cpp \
 	editor/operations/pan_view.cpp \
-	main.cpp \
-    pass.cpp \
-    composition.cpp \
-    program.cpp \
-    draw_call.cpp \
-    vertex_array.cpp \
     editor/operation.cpp \
     editor/operations/drag_vertex.cpp \
     editor/operations/add_vertex.cpp \
@@ -33,19 +30,7 @@ SOURCES += \
 HEADERS += \
 	editor/io/obj_file.h \
 	editor/operations/dolly_view.h \
-	editor/operations/pan_view.h \
-    pass.h \
-    composition.h \
-    renderable.h \
-    program.h \
-    vertex_array.h \
-    resources.h \
-    vertex_attribute_struct.h \
-    draw_call.h \
-	typed/interfaces.h \
-    typed/primitive_types.h \
-    typed/glm_types.h \
-    span.h \
+    editor/operations/pan_view.h \
     editor/operation.h \
     editor/operations/drag_vertex.h \
     editor/operations/add_vertex.h \

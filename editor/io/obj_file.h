@@ -5,8 +5,8 @@
 
 #include <glm/glm.hpp>
 
-#include "span.h"
-#include "draw_call.h"
+#include "ge1/span.h"
+#include "ge1/draw_call.h"
 
 namespace ge1 {
 
