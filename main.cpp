@@ -101,10 +101,11 @@ int main() {
     unique_program solid = compile_program(
         "shaders/solid.vs", nullptr, nullptr, nullptr, "shaders/solid.fs",
         {fragment_utils.get_name()},
-        {{"position", position}, {"color", color}}, {}
+        {{"position", position}, {"color", color}}
     );
 
-    draw_call mesh_draw_call{
+
+    draw_arrays_call mesh_draw_call{
         mesh.get_name(), 0, 4, solid.get_name(), GL_TRIANGLE_STRIP
     };
 
