@@ -4,6 +4,9 @@
 #include <GLFW/glfw3.h>
 
 #include <glm/glm.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
+#include <openvr/openvr_mingw.hpp>
 
 #include "ge1/composition.h"
 #include "ge1/resources.h"
@@ -32,6 +35,16 @@ struct unique_glfw {
     }
 };
 
+mat4x3 pose_to_mat(vr::HmdMatrix34_t pose) {
+    auto matrix = transpose(make_mat3x4(reinterpret_cast<float*>(pose.m)));
+    return matrix;
+}
+
+mat4x4 pose_to_mat(vr::HmdMatrix44_t pose) {
+    auto matrix = transpose(make_mat4(reinterpret_cast<float*>(pose.m)));
+    return matrix;
+}
+
 int main() {
     unique_glfw glfw;
 
@@ -57,6 +70,18 @@ int main() {
         return -1;
     }
 
+
+    vr::EVRInitError error = vr::VRInitError_None;
+    vr::IVRSystem *vr_system = vr::VR_Init(&error, vr::VRApplication_Scene);
+
+    if (error != vr::VRInitError_None) {
+        auto message = vr::VR_GetVRInitErrorAsEnglishDescription(error);
+        throw new runtime_error(message);
+    }
+
+    vr::TrackedDevicePose_t tracked_device_poses[vr::k_unMaxTrackedDeviceCount];
+
+
     GLuint shape_buffer, color_buffer;
 
     enum attributes : GLuint {
@@ -73,10 +98,10 @@ int main() {
     });
 
     float positions[] = {
-        -1, -1, 0,
-        -1, 1, 0,
-        1, -1, 0,
-        1, 1, 0
+        -1, 0, -1,
+        -1, 0, 1,
+        1, 0, -1,
+        1, 0, 1
     };
     float colors[] = {
         1, 0, 1,
@@ -104,6 +129,17 @@ int main() {
         {{"position", position}, {"color", color}}
     );
 
+    GLuint model_view_projection_matrix_uniform;
+
+    get_uniform_locations(
+        solid.get_name(), {
+            {
+                "model_view_projection_matrix",
+                &model_view_projection_matrix_uniform
+            }
+        }
+    );
+
 
     draw_arrays_call mesh_draw_call{
         mesh.get_name(), 0, 4, solid.get_name(), GL_TRIANGLE_STRIP
@@ -128,13 +164,144 @@ int main() {
     glfwSetWindowSizeCallback(window, &window_size_callback);
 
 
-    while (!glfwWindowShouldClose(window)) {
-        composition.render();
+    unsigned vr_width, vr_height;
+    vr_system->GetRecommendedRenderTargetSize(&vr_width, &vr_height);
 
-        glfwSwapBuffers(window);
+    GLuint framebuffers[4], renderbuffers[2], frame_textures[4];
+    glGenFramebuffers(4, framebuffers);
+    glGenRenderbuffers(2, renderbuffers);
+    glGenTextures(4, frame_textures);
+
+    for (auto i = 0u; i < 2; i++) {
+        // render buffers
+        glBindFramebuffer(GL_FRAMEBUFFER, framebuffers[i]);
+        glBindRenderbuffer(GL_RENDERBUFFER, renderbuffers[i]);
+        glRenderbufferStorageMultisample(
+            GL_RENDERBUFFER, 8, GL_DEPTH_COMPONENT, vr_width, vr_height
+        );
+        glFramebufferRenderbuffer(
+            GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
+            GL_RENDERBUFFER, renderbuffers[i]
+        );
+        glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, frame_textures[i]);
+        glTexImage2DMultisample(
+            GL_TEXTURE_2D_MULTISAMPLE, 8, GL_RGB8, vr_width, vr_height, true
+        );
+        glFramebufferTexture2D(
+            GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+            GL_TEXTURE_2D_MULTISAMPLE, frame_textures[i], 0
+        );
+
+        if (
+            glCheckFramebufferStatus(GL_FRAMEBUFFER) !=
+            GL_FRAMEBUFFER_COMPLETE
+        ) {
+            throw runtime_error("incomplete framebuffer");
+        }
+
+        // multisample resolving buffers
+        glBindFramebuffer(GL_FRAMEBUFFER, framebuffers[i + 2]);
+        glBindTexture(GL_TEXTURE_2D, frame_textures[i + 2]);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+        glTexImage2D(
+            GL_TEXTURE_2D, 0, GL_RGBA8,
+            static_cast<GLsizei>(vr_width),
+            static_cast<GLsizei>(vr_height),
+            0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr
+        );
+        glFramebufferTexture2D(
+            GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+            GL_TEXTURE_2D, frame_textures[i + 2], 0
+        );
+
+        if (
+            glCheckFramebufferStatus(GL_FRAMEBUFFER) !=
+            GL_FRAMEBUFFER_COMPLETE
+        ) {
+            throw runtime_error("incomplete framebuffer");
+        }
+    }
+
+    vr::EVREye eyes[2] = {vr::Eye_Left, vr::Eye_Right};
+    vr::Texture_t vr_frame_textures[2];
+    mat4 projection_matrices[2];
+
+    for (auto i = 0u; i < 2; i++) {
+        // TODO: matrices might update
+        projection_matrices[i] =
+            pose_to_mat(vr_system->GetProjectionMatrix(eyes[i], 0.01f, 10.f)) *
+            inverse(mat4(pose_to_mat(vr_system->GetEyeToHeadTransform(eyes[i]))));
+        vr_frame_textures[i] = {
+            reinterpret_cast<void*>(frame_textures[i + 2]),
+            vr::TextureType_OpenGL, vr::ColorSpace_Gamma
+        };
+    }
+
+
+    glEnable(GL_MULTISAMPLE);
+
+    while (!glfwWindowShouldClose(window)) {
+        vr::VRCompositor()->WaitGetPoses(
+            tracked_device_poses, vr::k_unMaxTrackedDeviceCount,
+            nullptr, 0
+        );
+
+        mat4x3 headset_pose;
+        for (auto i = 0u; i < vr::k_unMaxTrackedDeviceCount; i++) {
+            if (
+                vr_system->GetTrackedDeviceClass(i) ==
+                vr::TrackedDeviceClass::TrackedDeviceClass_HMD
+            ) {
+                auto pose = tracked_device_poses[i].mDeviceToAbsoluteTracking;
+                headset_pose = pose_to_mat(pose);
+                break;
+            }
+        }
+
+
+        glViewport(
+            0, 0,
+            static_cast<GLsizei>(vr_width), static_cast<GLsizei>(vr_height)
+        );
+
+        for (auto i = 0u; i < 2; i++) {
+            glBindFramebuffer(GL_FRAMEBUFFER, framebuffers[i]);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+            mat4 projection_matrix =
+                projection_matrices[i] * inverse(mat4(headset_pose));
+
+            glUniformMatrix4fv(
+                model_view_projection_matrix_uniform, 1, GL_FALSE,
+                value_ptr(projection_matrix)
+            );
+
+            composition.render();
+
+            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffers[i + 2]);
+            glBlitFramebuffer(
+                0, 0, vr_width, vr_height,
+                0, 0, vr_width, vr_height,
+                GL_COLOR_BUFFER_BIT, GL_LINEAR
+            );
+
+            vr::EVRCompositorError error =
+                vr::VRCompositor()->Submit(eyes[i], &vr_frame_textures[i]);
+            if (error != vr::VRCompositorError_None) {
+                throw runtime_error("compositor error");
+            }
+        }
 
         glfwPollEvents();
+
+        vr::VREvent_t event;
+        while (vr_system->PollNextEvent(&event, sizeof(event))) {
+
+        }
     }
+
+    vr::VR_Shutdown();
 
     return 0;
 }

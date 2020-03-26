@@ -6,7 +6,7 @@ CONFIG += object_parallel_to_source
 
 DEFINES += GLEW_STATIC
 
-LIBS += -lglfw3dll -lglew32s -lopengl32
+LIBS += -lglfw3dll -lglew32s -lopengl32 -lopenvr_api
 
 QMAKE_CXXFLAGS += -Wall -Werror
 
