@@ -12,6 +12,7 @@
 #include "ge1/resources.h"
 #include "ge1/draw_call.h"
 #include "ge1/program.h"
+#include "ge1/framebuffer.h"
 #include "typed/glm_types.h"
 
 using namespace std;
@@ -168,59 +169,19 @@ int main() {
     vr_system->GetRecommendedRenderTargetSize(&vr_width, &vr_height);
 
     GLuint framebuffers[4], renderbuffers[2], frame_textures[4];
-    glGenFramebuffers(4, framebuffers);
-    glGenRenderbuffers(2, renderbuffers);
-    glGenTextures(4, frame_textures);
 
     for (auto i = 0u; i < 2; i++) {
-        // render buffers
-        glBindFramebuffer(GL_FRAMEBUFFER, framebuffers[i]);
-        glBindRenderbuffer(GL_RENDERBUFFER, renderbuffers[i]);
-        glRenderbufferStorageMultisample(
-            GL_RENDERBUFFER, 8, GL_DEPTH_COMPONENT, vr_width, vr_height
+        framebuffers[i] = create_framebuffer_multisample(
+            vr_width, vr_height, 8,
+            {{GL_COLOR_ATTACHMENT0, &frame_textures[i], GL_RGB8}},
+            {{GL_DEPTH, &renderbuffers[i], GL_DEPTH_COMPONENT}}
         );
-        glFramebufferRenderbuffer(
-            GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
-            GL_RENDERBUFFER, renderbuffers[i]
-        );
-        glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, frame_textures[i]);
-        glTexImage2DMultisample(
-            GL_TEXTURE_2D_MULTISAMPLE, 8, GL_RGB8, vr_width, vr_height, true
-        );
-        glFramebufferTexture2D(
-            GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-            GL_TEXTURE_2D_MULTISAMPLE, frame_textures[i], 0
-        );
-
-        if (
-            glCheckFramebufferStatus(GL_FRAMEBUFFER) !=
-            GL_FRAMEBUFFER_COMPLETE
-        ) {
-            throw runtime_error("incomplete framebuffer");
-        }
 
         // multisample resolving buffers
-        glBindFramebuffer(GL_FRAMEBUFFER, framebuffers[i + 2]);
-        glBindTexture(GL_TEXTURE_2D, frame_textures[i + 2]);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
-        glTexImage2D(
-            GL_TEXTURE_2D, 0, GL_RGB8,
-            static_cast<GLsizei>(vr_width),
-            static_cast<GLsizei>(vr_height),
-            0, GL_RGB, GL_UNSIGNED_BYTE, nullptr
+        framebuffers[i + 2] = create_framebuffer(
+            vr_width, vr_height, GL_TEXTURE_2D,
+            {{GL_COLOR_ATTACHMENT0, &frame_textures[i + 2], GL_RGB8}}
         );
-        glFramebufferTexture2D(
-            GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-            GL_TEXTURE_2D, frame_textures[i + 2], 0
-        );
-
-        if (
-            glCheckFramebufferStatus(GL_FRAMEBUFFER) !=
-            GL_FRAMEBUFFER_COMPLETE
-        ) {
-            throw runtime_error("incomplete framebuffer");
-        }
     }
 
     vr::EVREye eyes[2] = {vr::Eye_Left, vr::Eye_Right};
